@@ -8,21 +8,53 @@ Set the repository and branch first:
 
 ```bash
 export EASY_DEPLOY_REPO=movelrobotics/easy-deploy-release
-export EASY_DEPLOY_BRANCH=master
+export EASY_DEPLOY_BRANCH=main
 ```
 
-For a public repository, install ROS1 latest:
+When using `curl | bash`, choose one mode explicitly:
+
+- Use `--no-install` to download and extract only.
+- Use `--yes` to download, extract, and run the installer immediately.
+
+Do not rely on the interactive prompt in `curl | bash` mode because stdin is already used by the pipe.
+
+### Download And Extract Only
+
+ROS1 latest:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest --no-install
 ```
 
-For a public repository, install ROS2 latest:
+ROS2 latest:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest --no-install
+```
+
+After download/extract only mode, install manually from the extracted package:
+
+```bash
+cd ~/Downloads/easy-deploy/easy-deploy-ros2-5.3.9-x86
+bash install-2-seirios.sh
+```
+
+### Download, Extract, And Install
+
+ROS1 latest:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest --yes
+```
+
+ROS2 latest:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest --yes
 ```
 
 For a private repository, export a GitHub token first:
@@ -30,27 +62,27 @@ For a private repository, export a GitHub token first:
 ```bash
 export GITHUB_TOKEN=ghp_xxx
 export EASY_DEPLOY_REPO=movelrobotics/easy-deploy-release
-export EASY_DEPLOY_BRANCH=master
+export EASY_DEPLOY_BRANCH=main
 ```
 
-Then install ROS1 latest:
+Then download and extract ROS1 latest:
 
 ```bash
 curl -fsSL \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
   -H "Accept: application/vnd.github.raw" \
   "https://api.github.com/repos/${EASY_DEPLOY_REPO}/contents/scripts/install_easy_deploy.sh?ref=${EASY_DEPLOY_BRANCH}" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest --no-install
 ```
 
-Or install ROS2 latest:
+Or download and extract ROS2 latest:
 
 ```bash
 curl -fsSL \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
   -H "Accept: application/vnd.github.raw" \
   "https://api.github.com/repos/${EASY_DEPLOY_REPO}/contents/scripts/install_easy_deploy.sh?ref=${EASY_DEPLOY_BRANCH}" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest --no-install
 ```
 
 If `raw.githubusercontent.com` returns `404`, check the branch name and repository visibility. Private repositories should use the GitHub API command above.
@@ -59,6 +91,7 @@ The installer automatically detects the machine architecture:
 
 ```text
 x86_64  -> x86
+aarch64 -> arm64
 arm64   -> arm64
 ```
 
