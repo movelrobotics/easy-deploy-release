@@ -4,19 +4,56 @@ This guide is for customers or deployment engineers who need to install Easy Dep
 
 ## Quick Start
 
-ROS1 latest:
+Set the repository and branch first:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/movelrobotics/easy-deploy-release/main/scripts/install_easy_deploy.sh \
-  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros1 --version latest
+export EASY_DEPLOY_REPO=movelrobotics/easy-deploy-release
+export EASY_DEPLOY_BRANCH=master
 ```
 
-ROS2 latest:
+For a public repository, install ROS1 latest:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/movelrobotics/easy-deploy-release/main/scripts/install_easy_deploy.sh \
-  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros2 --version latest
+curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest
 ```
+
+For a public repository, install ROS2 latest:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest
+```
+
+For a private repository, export a GitHub token first:
+
+```bash
+export GITHUB_TOKEN=ghp_xxx
+export EASY_DEPLOY_REPO=movelrobotics/easy-deploy-release
+export EASY_DEPLOY_BRANCH=master
+```
+
+Then install ROS1 latest:
+
+```bash
+curl -fsSL \
+  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/${EASY_DEPLOY_REPO}/contents/scripts/install_easy_deploy.sh?ref=${EASY_DEPLOY_BRANCH}" \
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest
+```
+
+Or install ROS2 latest:
+
+```bash
+curl -fsSL \
+  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/${EASY_DEPLOY_REPO}/contents/scripts/install_easy_deploy.sh?ref=${EASY_DEPLOY_BRANCH}" \
+  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest
+```
+
+If `raw.githubusercontent.com` returns `404`, check the branch name and repository visibility. Private repositories should use the GitHub API command above.
 
 The installer automatically detects the machine architecture:
 
@@ -154,16 +191,18 @@ Architecture override is for downloading only when the requested package archite
 
 ## Private Repository Access
 
-If the GitHub repository is private, provide a GitHub token:
+If the GitHub repository is private, provide a GitHub token before running the installer:
 
 ```bash
-GITHUB_TOKEN=ghp_xxx bash install_easy_deploy.sh \
+export GITHUB_TOKEN=ghp_xxx
+
+bash install_easy_deploy.sh \
   --repo movelrobotics/easy-deploy-release \
   --ros ros2 \
   --version latest
 ```
 
-The token must have permission to read repository releases.
+The token must have permission to read repository contents and releases.
 
 ## Expected Download Structure
 

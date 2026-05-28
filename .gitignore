@@ -1,0 +1,10 @@
+dist/
+*.zip
+*.tar.gz
+*.log
+.env
+rns-config-release-*/
+rns-config2-release-*/
+easy-deploy-ros2:*/
+movel-ai-easy-deploy-*/
+task_easy_deploy.png
