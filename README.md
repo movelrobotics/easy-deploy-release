@@ -1,2 +1,5 @@
-# easy-deploy-release
-Release tooling and installer for RNS Easy Deploy packages for ROS1/ROS2 on x86 and arm64.
+# Easy Deploy Release
+Release tooling and installer for RNS Easy Deploy packages.
+## Documentation
+- Internal release guide: README_INTERNAL.md
+- Client installation guide: README_CLIENT.md
