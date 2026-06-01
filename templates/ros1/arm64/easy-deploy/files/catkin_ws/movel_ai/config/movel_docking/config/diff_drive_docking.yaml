@@ -1,0 +1,19 @@
+init_xy_tolerance: 0.05
+final_xy_tolerance: 0.01
+yaw_tolerance: 0.01
+final_yaw_tolerance: 0.01
+frames_tracked: 20
+max_linear_vel: 0.1
+min_linear_vel: 0.01
+max_turn_vel: 0.1
+min_turn_vel: 0.01
+max_yaw_diff: 0.523599
+reverse: 0 # please make sure this value is same with reverse in tag_offset.yaml
+y_bounds: 0.01
+linear_acc: 0.1
+final_approach_dist: 0.75
+reference_frame: "map"
+xy_update_tolerance: 0.02
+yaw_update_tolerance: 0.035
+use_phase_1_linear_approach: false
+phase_1_approach_dist: 0.0

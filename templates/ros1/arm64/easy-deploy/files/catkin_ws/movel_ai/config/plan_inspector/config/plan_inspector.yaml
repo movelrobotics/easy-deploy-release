@@ -1,0 +1,37 @@
+# Enable Plan Inspector
+# enable: false #set this param on movel_redis/global_variables.yaml - stop_at_obstacles_enabled
+
+# Name of action server (move_base)
+action_server_name: "/universal_handler" #"/task_supervisor" #/move_base
+# # Name of global plan topic
+# plan_topic: "/move_base/GlobalPlanner/plan" #"/move_base/DWAPlannerROS/local_plan" #"/move_base/GlobalPlanner/plan"
+# Name of local costmap topic
+costmap_topic: "/move_base/local_costmap/costmap"
+# Name of velocity topic
+cmd_vel_topic: "/cmd_vel_mux/teleop/keyboard"
+# Name of odom topic
+odom_topic: "/odom"
+# Threshold whether plan can be called as obstructed, should be in the range [1, 99]. Set to 99 to only consider inscribed and lethal cells as obstructed
+obstruction_threshold: 99
+# Whether to use the automatically calculated circumscribed cost as obstruction threshold instead
+use_circumscribed_cost_as_obstruction_threshold: true
+# if plan is still obstructed after this period, abort action. -1 value will make the robot wait forever
+clearing_timeout: 15.0 #15.0 # sec, 
+# Control Frequency
+control_frequency: 20.0 # Hz, override will be sent in this frequency
+# Dynamic Reconofigure topic for move_base parameters
+move_base_config: "/move_base/set_parameters"
+# -1 if the robot should stop immediately after sensing the obstacle on the path
+stop_distance: 1.5    
+# Enable or disable rotation behavior when plan obstructed  
+rotate_fov: true
+# Rotation speed for rotation behavior
+rotation_speed: 0.7
+# Angular tolerance for rotaion behavior
+angular_tolerance: 0.1
+# Get new plan if obstuction exceeds clearing timeout
+enable_replan: false
+# allow replanning and detection of partial blockage during clearing timeout 
+enable_partial_blockage_replan: false
+# path length difference (in meters) (partial blockage if <= thres, full blockage if > thres)
+partial_blockage_path_length_threshold: 30.0

@@ -1,0 +1,16 @@
+lidar_topic: "/lidar_point_cloud/filtered" #lidar input cloud topic
+depth_topic: "/camera/depth/points/filtered" #camera input cloud topic
+filtered_topic: "/pcl_filters/psy/output" #output cloud that has been filtered on y axis
+target_frame: "base_link"  #transform input pointcloud(s) to base_link frame
+dist_th: 0.04 #set the distance to model threshold for the segmentation object
+inlier_th: 10 #minimum number of inlier to estimate planar model
+min_z: 0.04 #cloud points below this height in base_link frame will be filtered out
+max_z: 1.70 #cloud points above this height in base_link frame will be filtered out
+angle_th: 0.50 #max angle in radians that robot can navigate
+merge_cloud: true #default to merging camera and lidar pointclouds
+smooth_th: 0.087222 #smoothness threshold for region growing algorithm to merge points that are close enough
+curve_th: 0.8 #curvature threshold for region growing algorithm to merge points that are close enough
+leaf_size: 0.03 #downsampling
+k: 10 #number of nearest neighbours we want to check, when checking for curbs
+z_th: 0.05 #when checking neighbour points' height difference in z axis
+debug: false #if true, publish rga_cloud and merged cloud

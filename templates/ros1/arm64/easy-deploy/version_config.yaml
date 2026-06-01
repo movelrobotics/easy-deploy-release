@@ -1,0 +1,30 @@
+version:
+  - master-030
+  - host-ubuntu.v16.04.to.20.04
+  - arm64
+
+seirios:
+  seirios-ros:
+    tag: movelrobots/rns-ros:2.66.6
+    registry: dockerhub
+  seirios-backend:
+    tag: movelrobots/rns-backend:4.36.0-alpha
+    registry: dockerhub
+  seirios-frontend:
+    tag: movelrobots/rns-frontend:4.36.0-alpha
+    registry: dockerhub
+  seirios-backend-worker:
+    tag: movelrobots/rns-backend-worker:3.3.0
+    registry: dockerhub
+  redis:
+    tag: library/redis:6.2.0
+    registry: dockerhub
+  rabbitmq:
+    tag: library/rabbitmq:3.8.12-management
+    registry: dockerhub
+  mongo:
+    tag: library/mongo:4.4.4
+    registry: dockerhub
+
+registry:
+  dockerhub: docker.io

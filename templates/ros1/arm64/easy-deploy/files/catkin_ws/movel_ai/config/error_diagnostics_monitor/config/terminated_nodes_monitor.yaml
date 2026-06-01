@@ -1,0 +1,18 @@
+frequency: 1.0
+timeout_duration: 20.0
+alert_duration: 5.0
+enable_alerts: false
+enable_modal: false
+monitor_navigation_nodes: false
+node_list: "/3d_lidar_filter/pcl_filter_manager /3d_lidar_filter/voxel_filter /anti_shin_buster_node /laser_scan_filter /obs_cloud_to_scan /cmd_vel_mux /launch_manager /map_json_png_base64_node /map_nav_json_png_base64_node /mongo_bridge /broadcast_pose /movel_redis_initialise /rosbridge_websocket /scan_with_tf_node /speed_limit_zones /task_duration_estimator /task_supervisor /universal_handler /velocity_limiter /velocity_smoother /velocity_smoother_nm /rosbridge_websocket"
+navigation_node_list: "/velocity_setter_node /obstacle_extractor /map_server /map_server_nav /move_base /rtabmap/icp_odometry /rtabmap/point_cloud_assembler /rtabmap/rtabmap /prohibition_layer_mongo /costmap_node /plan_decimator_node /plan_measurer_node"
+
+# camera, 2D lidar, 3D lidar filter and Obstacle Detection: /3d_lidar_filter/pcl_filter_manager /3d_lidar_filter/voxel_filter /anti_shin_buster_node /aux_task_manager_node /laser_scan_filter /obs_cloud_to_scan /obstacle_extractor
+
+# Safety Feature: /camera_to_safety_lidar_publisher_node /safety_camera_cloud_cropbox /safety_lidar_data_publisher_node /safety_lidar_pcl_manager /safety_scan_cloud_cropbox
+
+# Common System: /cmd_vel_mux /launch_manager /map_editor /map_json_png_base64_node /map_name_pub /map_nav_json_png_base64_node /map_server /map_server_nav /mongo_bridge /broadcast_pose /movel_redis_initialise /rosbridge_websocket /scan_with_tf_node /speed_limit_zones /task_duration_estimator /task_supervisor /universal_handler /velocity_limiter /velocity_setter_node /velocity_smoother /velocity_smoother_nm /rosbridge_websocket
+
+# Map loaded and Navigation: /move_base /localization_monitor_node /rtabmap/icp_odometry /rtabmap/point_cloud_assembler /rtabmap/rtabmap /prohibition_layer_mongo /costmap_node /plan_decimator_node /plan_measurer_node /planner_utils_node
+
+# /move_base /localization_monitor_node /rtabmap/icp_odometry /rtabmap/point_cloud_assembler /rtabmap/rtabmap /prohibition_layer_mongo /costmap_node /plan_decimator_node /plan_measurer_node /planner_utils_node

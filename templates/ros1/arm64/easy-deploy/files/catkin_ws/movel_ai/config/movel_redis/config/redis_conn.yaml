@@ -1,0 +1,4 @@
+redis_host: "127.0.0.1"
+redis_port: "6379"
+# if you get sw::redis::TimeoutError at any point, increase the timeout (try 10ms)
+socket_timeout: 1

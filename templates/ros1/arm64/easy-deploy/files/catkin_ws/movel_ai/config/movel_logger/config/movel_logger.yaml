@@ -1,0 +1,2 @@
+print_hardware_frequency_in_secs: 10
+delete_logs_older_than_days: 5

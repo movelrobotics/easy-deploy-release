@@ -1,0 +1,11 @@
+linear_tolerance: 0.01
+angular_tolerance: 0.0174533
+min_linear_velocity: 0.01
+max_linear_velocity: 0.9
+min_angular_velocity: 0.01
+max_angular_velocity: 0.5
+linear_slowdown_distance: 0.5
+angular_slowdown_distance: 0.5
+focus_on_x: false
+allow_reverse_linear: true
+oscillation_timeout: 10.0

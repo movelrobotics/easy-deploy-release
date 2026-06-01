@@ -1,0 +1,6 @@
+navigation_map_path : /home/movel/.config/movel/maps/nav/
+localization_map_path : /home/movel/.config/movel/maps/
+
+anti_aliasing_line: false
+enable_line_thickness_hardcoded: false
+line_thickness_value: 0

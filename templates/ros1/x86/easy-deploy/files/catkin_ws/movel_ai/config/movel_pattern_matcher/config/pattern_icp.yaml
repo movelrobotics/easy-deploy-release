@@ -1,0 +1,9 @@
+pcd_reference_path: ""
+reverse: false
+max_correspondence_distance: 1
+cluster_tolerance: 0.04
+min_cluster_size: 0
+max_cluster_size: 500
+max_score_icp: 0.0001
+tf_reference_frame: "scan" # make sure the transform is 0 0 0 0 0 0 to base_link
+tag_output: "tag_0"

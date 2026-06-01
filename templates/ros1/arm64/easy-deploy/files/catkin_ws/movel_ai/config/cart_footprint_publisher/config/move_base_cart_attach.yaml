@@ -1,0 +1,14 @@
+TebLocalPlannerROS:
+  acc_lim_theta: 0.1
+
+# PebbleLocalPlanner:
+#   d_min: 0.3
+
+# local_costmap:
+#   footprint: [[0.5, 0.3], [-0.5, 0.3], [-0.5, -0.3], [0.5, -0.3]]
+#   inflation_layer:
+#     enabled: false
+
+# global_costmap:
+#   dynamic_obstacle_layer:
+#     enabled: true

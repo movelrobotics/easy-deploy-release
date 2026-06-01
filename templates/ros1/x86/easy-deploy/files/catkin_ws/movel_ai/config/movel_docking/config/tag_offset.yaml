@@ -1,0 +1,10 @@
+auto_assign_id: false
+tag_id: 0
+apriltag_x_offset: 0.0 
+apriltag_y_offset: 0.0 
+apriltag_yaw_offset: 0.0
+reverse: false # please make sure this value is same with reverse in docking.yaml
+apriltag_yaw_tolerance: 0.7 
+frames_tracked: 30
+tag_quantity: 2
+transform_tolerance: 2

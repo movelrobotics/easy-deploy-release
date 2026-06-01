@@ -1,0 +1,781 @@
+# Rate of the control loop
+# Unit: hz
+loop_rate: 20.0
+state_topic: speed
+transition_timeout: 1.0
+default_linear_velocity: 0.2
+default_angular_velocity: 0.6283
+
+plugins:  
+  - {name: localization_handler, type: 1, class: 'task_supervisor::LocalizationHandler'}
+  - {name: mapping_handler, type: 2, class: 'task_supervisor::MappingHandler'}
+  - {name: aruco_handler, type: 38, class: 'task_supervisor::ArucoHandler'}
+  # - {name: multi_session_mapping_handler, type: 20, class: 'task_supervisor::MultiSessionVisualMappingHandler'}
+  - {name: multi_session_mapping_handler, type: 20, class: 'task_supervisor::MultiSessionMappingHandler'}
+  - {name: point_based_mapping_handler, type: 22, class: 'task_supervisor::PointBasedMappingHandler'}
+  # - {name: navigation_handler, type: 3, class: 'task_supervisor::NavigationHandler'}
+  - {name: navigation_waypoint_handler, type: 3, class: 'task_supervisor::NavigationSmoothWaypointHandler'}
+  - {name: cleaning_handler, type: 4, class: 'task_supervisor::CleaningHandler'}
+  - {name: human_detection_handler, type: 5, class: 'task_supervisor::HumanDetectionHandler'}
+  # - {name: path_handler, type: 6, class: 'task_supervisor::PathHandler'}
+  # - {name: geometric_docking_handler, type: 10, class: 'geometric_docking_handler::GeometricDockingHandler'}
+  # - {name: docking_charge, type: 10, class: 'general_docking_handler::GeneralDockingHandler'}
+  # - {name: docking_one_phase, type: 19, class: 'general_docking_handler::GeneralDockingHandler'}
+  # - {name: docking_dual_phase, type: 29, class: 'general_docking_handler::GeneralDockingHandler'}
+  - {name: dummy_docking, type: 10, class: 'external_process_handler::ExternalProcessHandler'}
+  - {name: pcl_slam_handler, type: 32, class: 'task_supervisor::PCLSlamHandler'}
+  # - {name: kudan_slam_handler, type: 32, class: 'task_supervisor::KudanSlamHandler'}
+  # - {name: kudan_visual_slam_handler, type: 32, class: 'task_supervisor::KudanVisualSlamHandler'}
+  - {name: pcl_localization_handler, type: 31, class: 'task_supervisor::PCLLocalizationHandler'}
+  # - {name: kudan_localization_handler, type: 31, class: 'task_supervisor::KudanLocalizationHandler'}
+  # - {name: kudan_visual_localization_handler, type: 31, class: 'task_supervisor::KudanVisualLocalizationHandler'}
+  - {name: wait_for_go_handler, type: 11, class: 'wait_for_go_handler::WaitForGoHandler'}
+  - {name: automapping_handler, type: 7, class: 'task_supervisor::MappingHandler'}
+  - {name: rtabmap_handler, type: 9, class: 'rtabmap_handler::RtabmapHandler'}
+  - {name: flexbe_handler, type: 12, class: 'task_supervisor::FlexbeHandler'}
+  - {name: multi_floor_navigation_handler, type: 21, class: 'task_supervisor::MultiFloorNavigationHandler'}
+  - {name: multi_point_navigation_handler, type: 6, class: 'task_supervisor::MultiPointNavigationHandler'}
+  # - {name: navigation_waypoint_handler, type: 6, class: 'task_supervisor::NavigationSmoothWaypointHandler'}
+  # - {name: multi_point_local_planner_navigation_handler, type: 6, class: 'task_supervisor::MultiPointLocalPlannerNavigationHandler'}
+  # - {name: multi_point_navigation_handler_pebble, type: 6, class: 'task_supervisor::NavigationSmoothWaypointHandler'}
+  # - {name: docking, type: 15, class: 'external_process_handler::ExternalProcessHandler'}
+  - {name: wait_for_button, type: 80, class: 'external_process_handler::ExternalProcessHandler'}
+  #- {name: wait_in_station, type: 79, class: 'external_process_handler::ExternalProcessHandler'}
+  - {name: dummy_undocking, type: 16, class: 'external_process_handler::ExternalProcessHandler'}
+  # - {name: undocking_charge, type: 16, class: 'general_docking_handler::GeneralDockingHandler'}
+  # - {name: un_docking_charge, type: 16, class: 'general_docking_handler::GeneralDockingHandler'}
+  - {name: docking_one_phase, type: 17, class: 'general_docking_handler::GeneralDockingHandler'}
+
+validation:
+  loop_rate:
+    min: 0.0
+    max: 9999.0
+  transition_timeout:
+    min: 0.0
+    max: 10.0
+
+undocking_charge:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  loop_rate: 10
+  odom_topic: "/odom"
+  use_pre_external_service: false
+  disable_smoother: true
+  pre_external_service: "/stop_charging"
+  pre_external_cancel_topic: "/test_cancel" 
+  dock: false
+  undocking_distance: 1.0
+  undocking_speed: -0.1
+
+wait_for_button:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  service_req: true
+  launch_req: false
+  service_start: "/external_process/start_waiting_for_button" #required if service_req is true
+  service_start_msg: "" #optional  if there is any particular msg needs to sent or else empty string 
+  service_stop: "/external_process/stop_waiting_for_button" #required if service_req is true
+  service_stop_msg: "" #optional  if there is any particular msg needs to sent or else empty string 
+  #launch_package: "yocs_velocity_smoother" #required if launch_req is true
+  #launch_file: "standalone.launch"  #required if launch_req is true
+  #launch_nodes: "/nodelet_manager /velocity_smoother" #required if launch_req is true
+  topic_cancel_req: true
+  topic_process_cancel: "/external_process/cancel_publish"
+
+wait_in_station:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  service_req: true
+  launch_req: false
+  service_start: "/external_process/start_wait_in_station" #required if service_req is true
+  service_start_msg: "ROBOT REACHED STATION" #optional  if there is any particular msg needs to sent or else empty string 
+  service_stop: "/external_process/stop_wait_in_station" #required if service_req is true
+  service_stop_msg: "ROBOT CAN MOVE" #optional  if there is any particular msg needs to sent or else empty string 
+  #launch_package: "yocs_velocity_smoother" #required if launch_req is true
+  #launch_file: "standalone.launch"  #required if launch_req is true
+  #launch_nodes: "/nodelet_manager /velocity_smoother" #required if launch_req is true
+  topic_cancel_req: true
+  topic_process_cancel: "/external_process/cancel_publish"
+
+mapping_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  mapping_launch_package: "movel" #"slam_toolbox"
+  mapping_launch_file: "karto_mapping.launch"  #"mapping.launch" #"online_async.launch"
+  mapping_launch_nodes: "/slam_karto" #"/slam_gmapping" # "/async_slam_toolbox_node"
+  split_map: false
+  save_split_map_to_library: false
+  orb_slam: false
+  orb_map_launch_package: "orbomator"
+  orb_map_launch_file: "orb_mapping.launch"
+  orb_map_launch_nodes: "/orb_slam2_ros_rgbd /map_tf_mon"
+  rgbd_depth_topic: "/camera/depth/image_raw"                                                                                                         
+  rgb_color_topic: "/camera/rgb/image_raw"                                                                                                               
+  rgbd_camera_info: "/camera/depth/camera_info"                                                                                                       
+  #loop_rate: rate at which to check for cancellations, Hz
+  #save_timeout: time to wait before saving of map is failed, seconds
+  #map_topic: topic to read map for saving, global namespace eg "/map"
+
+multi_session_mapping_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 1000.0
+  save_timeout: 40.0
+  merged_map_topic: "/map"
+  multi_session_mapping_launch_package: "map_merge"
+  mapping_launch_file: "multi_session_karto.launch" #"multi_session_gmapping.launch"
+  multi_session_mapping_3d_launch_package: "kdlidar_ros"
+  mapping_3d_launch_file: "kdlidar_ros_pcl_mapping.launch" #"multi_session_gmapping.launch"
+  map_expander_launch_file: "map_expander.launch"
+  dynamic_mapping_nav_launch_file: "dynamic_mapping_move_base.launch"
+  previous_map_dir: "/home/movel/.config/movel/maps"
+
+point_based_mapping_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 1000.0
+  map_topic: "/map"
+  mapping_launch_package: "movel"
+  mapping_launch_file: "point_based_mapping.launch" #"gmapping.launch"
+  mapping_launch_nodes: "/move_base_pb /gmapping /map_server" #"/gmapping"
+  previous_map_dir: "/home/movel/.config/movel/maps"
+
+localization_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  localization_launch_package: "movel"
+  localization_launch_file: "move_base.launch"
+  # localization_launch_file: "move_base_only.launch" #for slam toolbox / without amcl
+  # localization_launch_file: "move_base_loc2d.launch"
+  # localization_launch_file: "move_base_als_mcl.launch"
+  # localization_launch_file: "move_base_als_mcl_gl_pose_sampler.launch"
+  # localization_launch_file: "move_base_als_mcl_mrf_failure_detector.launch"
+  # localization_launch_file: "move_base_als_mcl_gl_pose_sampler_mrf_failure_detector.launch"
+  # localization_launch_file: "move_base_gmcl.launch"
+  localization_map_dir: "/home/movel/.config/movel/maps"
+  navigation_map_dir: "/home/movel/.config/movel/maps/nav"
+  large_map: false
+  large_map_mode: 1 # 0: full res loc, low res nav; 1: swap loc, low res nav; 2 (not implemented): swap loc, swap nav
+  # for slam toolbox, without amcl
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector" #/aruco_detect /movel_aruco_amcl
+  localization_launch_nodes: "/obs_cloud_to_scan /move_base /amcl /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector" #/aruco_detect /movel_aruco_amcl
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /loc2d_ros /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector" #/aruco_detect /movel_aruco_amcl
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /mcl /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /mcl /gl_pose_sampler /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /mcl /mrf_failure_detector /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /mcl /gl_pose_sampler /mrf_failure_detector /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+  # localization_launch_nodes: "/obs_cloud_to_scan /move_base /gmcl /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+  slam_toolbox: false #set to true for slam toolbox
+  slam_toolbox_loc_launch_package: "slam_toolbox"
+  slam_toolbox_loc_launch_file: "localization.launch"
+  slam_toolbox_loc_launch_nodes: "/localization_slam_toolbox_node"
+  orb_slam: false
+  orb_loc_launch_package: "orbomator"
+  orb_loc_launch_file: "orb_localization.launch"
+  orb_loc_launch_nodes: "/orb_slam2_ros_rgbd /Orbomator_Transform /orbomateur"
+  rgbd_depth_topic: "/camera/depth/image_raw"                                                                                                         
+  rgb_color_topic: "/camera/rgb/image_raw"                                                                                                               
+  rgbd_camera_info: "/camera/depth/camera_info"
+  # loop_rate: rate a which to check for cancellations, Hz
+  loop_rate: 5.0
+  # set_map_timeout: time to wait for /set_map service from amcl before failing, seconds
+  set_map_timeout: 10.0
+  # localization_map_topic: topic to listen to for amcl to get map for localization purposes,
+  # (global namespace eg "/map")
+  localization_map_topic: "/map"
+  # navigation_map_topic: topic to listen to for move_base to get map for localization purposes
+  # (global namespace eg "/map_nav")
+  navigation_map_topic: "/map_nav"
+  # map_frame: fixed frame that mapping node produces odom -> base_link transfrom
+  map_frame: "map"
+  # base_link_frame: frame attached to body, tf tree should be map_frame -> odom_frame -> base_link
+  base_link_frame: "base_link"
+  # set_map_service: name of service provided by amcl to set initial pose with covariance and map occupancygrid
+  set_map_service: "/set_map"
+
+navigation_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  server_timeout: 2
+  static_paths: false
+  navigation_server: "move_base"
+  human_detection_min_score: 0.5
+  human_detection_topic: "/human_detection/detection"
+  enable_human_detection_msg: "Enabled navigation with human detection"
+  disable_human_detection_msg: "Disabled navigation with human detection"
+  enable_best_effort_goal: true
+  normal_nav_if_best_effort_unavailable: true
+  best_effort_retry_timeout_sec: 30
+  best_effort_retry_sleep_sec: 1
+
+navigation_waypoint_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  server_timeout: 2
+  static_paths: false
+  navigation_server: "move_base"
+  human_detection_min_score: 0.5
+  human_detection_topic: "/human_detection/detection"
+  enable_human_detection_msg: "Enabled navigation with human detection"
+  disable_human_detection_msg: "Disabled navigation with human detection"
+  enable_best_effort_goal: true
+  normal_nav_if_best_effort_unavailable: true
+  best_effort_retry_timeout_sec: 15
+  best_effort_retry_sleep_sec: 1
+  smooth_transition_dist: 0.5
+  use_orientation_sameness_to_skip_waypoint: false
+  waypoint_orientation_sameness_threshold: 1.0472 # radian
+  change_goal_tolerance_before_trail: true
+  xy_tolerance_before_trail: 0.3
+  yaw_tolerance_before_trail: 0.512
+  back_to_first_point_if_the_nearest_is_last: false
+  enable_dynamic_speed_base_inflation_layer: false
+  min_speed_dynamic_inflation_layer_threshold: 0.15
+  min_speed_to_change_inflation_layer: 0.4
+  new_cost_scaling_factor: 10.0
+  new_inflation_radius: 0.8
+  visit_skipped_waypoints_override: false
+  enable_skip_obstructed_point: true
+  obstructed_waiting_timeout_sec: 40.0
+
+cleaning_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0 #disable
+  start_distance_thresh: 100000000.0 #meters
+  #yaml_path must end with slash, is a directory
+  polygon_path: "/home/movel/.config/movel/paths/"
+  cropped_map_path: "/home/movel/.config/movel/paths/map_cropped.png"
+  cropped_coordinates_path: "/home/movel/.config/movel/paths/map_cropped.txt"
+  planning_timeout: 60.0
+  move_base_package: "task_supervisor"
+  move_base_launch: "noop.launch"
+  radius_multiplier: 3
+  planned_path_name: "coverage_path"
+  reduce_path_by_angle: false
+  angle_threshold: 0 # in degrees
+
+human_detection_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  human_detection_launch_package: "human_detection"
+  human_detection_launch_file: "human_detection.launch"
+  human_detection_start_log_msg: "Start human detection service called"
+  human_detection_stop_log_msg: "Stop human detection service called"
+  human_detection_start_error_msg: "Failed to launch human detection launch file"
+  human_detection_stop_error_msg: "Could not stop, human detection was not started"
+
+path_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  path_load_launch_package: "path_recall"
+  path_load_launch_file: "path_load_segments.launch"
+  human_detection_min_score: 0.5
+  human_detection_topic: "/human_detection/detection"
+  enable_human_detection_msg: "Enabled path loading with human detection"
+  disable_human_detection_msg: "Disabled path loading  with human detection"
+  teardown_timeout: 60 # [s] how long to wait before stopping launches after task completion 
+
+pcl_slam_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  save_timeout: 20.0
+  map_topic: "/map"
+  pcl_slam_launch_package: ""
+  pcl_slam_launch: ""
+  use_dynamic_2d: true
+  pcl_map_saver_package: "task_supervisor"
+  pcl_map_saver_launch: "map_saver.launch"
+  three_to_two_package: "movel_octomap_server"
+  three_to_two_launch: "pointcloud_grid.launch"
+  use_rtabmap: true
+  rtabmap_pcl_slam_launch_package: "pcl_slam_handler"
+  rtabmap_pcl_slam_launch: "flat_lpm.launch"
+  temp_map_name: "/home/movel/.config/movel/maps/temp_rtabmap_save_"
+
+kudan_slam_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  save_timeout: 40.0
+  map_topic: "/map"
+  kudan_slam_launch_package: "kdlidar_ros"
+  kudan_slam_launch: "kdlidar_ros_pcl_mapping.launch"
+  kudan_map_saver_package: "task_supervisor"
+  kudan_map_saver_launch: "map_saver.launch"
+  three_to_two_package: "movel_octomap_server"
+  three_to_two_launch: "pointcloud_grid.launch"
+  
+kudan_visual_slam_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  save_timeout: 40.0
+  map_topic: "/map"
+  # kudan_slam_launch_package: "kdlidar_ros"
+  kudan_slam_launch_package: "kdvisual_ros"
+  # kudan_slam_launch_package: "kdvisual_ros_amr"
+  # kudan_slam_launch: "kdlidar_ros_pcl_mapping.launch"
+  kudan_slam_launch: "kdvisual_seirios_ros_mapping.launch"
+  # kudan_slam_launch: "kdvisual_2d_map_dataset.launch"
+  kudan_map_saver_package: "task_supervisor"
+  kudan_map_saver_launch: "map_saver.launch"
+  three_to_two_package: "movel_octomap_server"
+  three_to_two_launch: "pointcloud_grid.launch"
+  
+pcl_localization_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  pcl_localization_launch_package: "movel"
+  pcl_localization_launch_file: "3D_move_base_graph.launch" #3D_move_base_graph_dynamic.launch
+  localization_map_dir: "/home/movel/.config/movel/maps"
+  navigation_map_dir: "/home/movel/.config/movel/maps/nav"
+  pcl_localization_launch_nodes: "/obs_cloud_to_scan /move_base /amcl /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+  dynamic_mapping_move_base_launch_file: "3D_move_base_mapping.launch"
+  dynamic_mapping_launch_package: "pcl_slam_handler"
+  dynamic_mapping_launch_file: "flat_lpm.launch"
+  dynamic_map_saver_package: "task_supervisor"
+  dynamic_map_saver_launch: "map_saver.launch"
+  dynamic_mapping_timeout: 60
+  temp_map_name: "/home/movel/.config/movel/maps/temp_rtabmap_save_"
+  update_param_launch_file: "update_param_lpm.launch"
+  #loop_rate: rate a which to check for cancellations, Hz
+  #set_map_timeout: time to wait for /set_map service from amcl before failing, seconds
+  #map_topic: topic to listen to for amcl to get map, , global namespace eg "/map"
+  #map_frame: fixed frame that mapping node produces odom -> base_link transfrom
+  #base_link_frame: frame attached to body, tf tree should be map_frame -> odom_frame -> base_link
+  #set_map_service: name of service provided by amcl to set initial pose with covariance and map occupancygrid
+
+kudan_localization_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  kudan_localization_launch_package: "kdlidar_ros"
+  kudan_localization_launch_file: "kdlidar_ros_pcl_localise.launch"
+  move_base_launch_package: "movel"
+  move_base_launch_file: "navigation_common.launch"
+  localization_map_dir: "/home/movel/.config/movel/maps"
+  navigation_map_dir: "/home/movel/.config/movel/maps/nav"
+  kudan_localization_launch_nodes: "/obs_cloud_to_scan /kdlidar_ros_pcl /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+
+docking_one_phase:
+  watchdog_rate: 2.0
+  watchdog_timeout: 30.0
+  loop_rate: 5
+  odom_topic: "/odom"
+  disable_smoother: true
+  use_pre_external_service: false
+  # pre_external_service: "/lift_fork"          # uncomment if use_pre_external_service is true
+  # pre_external_cancel_topic: "/test_cancel"   # uncomment if use_pre_external_service is true
+  use_post_external_service: false
+  # post_external_service: "/lift_fork"         # uncomment if use_post_external_service is true
+  # post_external_cancel_topic: "/test_cancel"  # uncomment if use_post_external_service is true
+  dock: true
+  use_external_feedback: false
+  feedback_timeout: 5.0
+  #external_topic: "/external_feedback"  # uncomment if use_external_feedback is true
+  internal_topic: "/movel_diff_drive_docking/success"
+  pause_service: "/movel_diff_drive_docking/pause"
+  docking_launch_package: "dalu_docking"
+  docking_launch_file: "diff_drive_docking.launch" #"diff_drive_docking_pose1.launch"
+  # docking_launch_file: "diff_drive_docking_single_phase.launch" #"diff_drive_docking_pose1.launch"
+  camera_name: "camera"
+  enable_retry: false
+  undocking_distance: 0.3
+  undocking_speed: -0.1
+  use_timeout_for_detection: true #if true, it will wait the tf to be published before starting the docking
+  detection_timeout: 10.0 #need to set the timeout if use_timeout_for_detection is true
+  detection_tf_name: "offset_tf" #name of the tf to be published by the docking node
+  succeeded_after_timeout: false #instead of aborted, it will be succeeded after the detection_timeout
+
+undocking:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  loop_rate: 10
+  odom_topic: "/odom"
+  disable_smoother: true
+  use_pre_external_service: false
+  # pre_external_service: "/lift_fork"          # uncomment if use_pre_external_service is true
+  # pre_external_cancel_topic: "/test_cancel"   # uncomment if use_pre_external_service is true
+  use_post_external_service: false
+  # post_external_service: "/lift_fork"         # uncomment if use_post_external_service is true
+  # post_external_cancel_topic: "/test_cancel"  # uncomment if use_post_external_service is true
+  dock: false
+  use_external_feedback: false #true
+  feedback_timeout: 5.0
+  external_topic: "/external_feedback"  # uncomment if use_external_feedback is true
+  internal_topic: "/movel_diff_drive_docking/success"
+  pause_service: "/movel_diff_drive_docking/pause"
+  docking_launch_package: "dalu_docking"
+  docking_launch_file: "diff_drive_docking_single_phase.launch" #"diff_drive_docking_pose1.launch"
+  camera_name: "camera"
+  enable_retry: false #true
+  undocking_distance: 0.3
+  undocking_speed: -0.1
+  
+kudan_visual_localization_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  set_map_timeout: 5.0
+  kudan_localization_launch_package: "kdvisual_ros"
+  kudan_localization_launch_file: "kdvisual_seirios_ros_amcl_localization.launch"
+  move_base_launch_package: "movel"
+  move_base_launch_file: "navigation_common.launch"
+  localization_map_dir: "/home/movel/.config/movel/maps"
+  navigation_map_dir: "/home/movel/.config/movel/maps/nav"
+  kudan_localization_launch_nodes: "/obs_cloud_to_scan /kdvisual_ros /velocity_limiter /anti_shin_buster_node /rgbd_to_base /velocity_setter_node /plan_inspector"
+
+geometric_docking_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  geometric_launch_package: "geometric_docking"
+  geometric_launch_file: "geodock.launch"
+  geometric_launch_nodes: "/geometric_docking_node /planner_adjuster"
+
+wait_for_go_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+
+automapping_handler:
+  auto: true
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  mapping_launch_package: "movel"
+  mapping_launch_file: "mapping.launch" #karto_mapping.launch" 
+  mapping_launch_nodes: "/slam_gmapping" #"/slam_karto" #/aruco_detect /movel_aruco_saver
+  split_map: false
+  orb_slam: false
+  orb_map_launch_package: "orbomator"
+  orb_map_launch_file: "orb_mapping.launch"
+  orb_map_launch_nodes: "/orb_slam2_ros_rgbd /map_tf_mon"
+  rgbd_depth_topic: "/camera/depth/image_raw"
+  rgb_color_topic: "/camera/rgb/image_raw"
+  rgbd_camera_info: "/camera/depth/camera_info"
+  #loop_rate: rate at which to check for cancellations, Hz
+  #save_timeout: time to wait before saving of map is failed, seconds
+  #map_topic: topic to read map for saving, global namespace eg "/map"
+
+rtabmap_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 1000.0
+  mapping_launch_package: "movel"
+  mapping_launch_file: "rtabmap_multi_mapping.launch"
+  camera_names: ["camera"] # up to 4 cameras
+
+flexbe_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 1000.0
+  flexbe_timeout: 2.0
+  flexbe_start_behavior_timeout: 5.0
+  flexbe_server: "flexbe/execute_behavior"
+  flexbe_topics_prefix: "flexbe"
+  enable_flexbe_logs: true
+
+multi_floor_navigation_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  server_timeout: 2
+  static_paths: false
+  navigation_server: "move_base"
+  human_detection_min_score: 0.5
+  human_detection_topic: "/human_detection/detection"
+  enable_human_detection_msg: "Enabled navigation with human detection"
+  disable_human_detection_msg: "Disabled navigation with human detection"
+  enable_best_effort_goal: true
+  normal_nav_if_best_effort_unavailable: true
+  best_effort_retry_timeout_sec: 30
+  best_effort_retry_sleep_sec: 1
+  mfn_map_folder_path: "/home/movel/.config/movel/maps"
+  mfn_map_nav_folder_path: "/home/movel/.config/movel/maps/nav"
+  mfn_graph_folder_path: "/home/movel/.config/movel/maps/graph_files"
+  mfn_transit_folder_path: "/home/movel/.config/movel/maps/transit_points"
+  smooth_transition_dist: 0.2   # meters
+  xy_transit_tolerance: 0.05
+  yaw_transit_tolerance: 0.08
+  use_orientation_sameness_to_skip_waypoint: false
+  waypoint_orientation_sameness_threshold: 1.0472 # radians
+  use_external_service: false
+  external_service: "/elevator_switch" 
+
+multi_point_navigation_handler_pebble:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  server_timeout: 2
+  static_paths: false
+  navigation_server: "move_base"
+  human_detection_min_score: 0.5
+  human_detection_topic: "/human_detection/detection"
+  enable_human_detection_msg: "Enabled navigation with human detection"
+  disable_human_detection_msg: "Disabled navigation with human detection"
+  enable_best_effort_goal: true
+  normal_nav_if_best_effort_unavailable: true
+  best_effort_retry_timeout_sec: 300
+  best_effort_retry_sleep_sec: 1
+  smooth_transition_dist: 0.5  # meters
+  use_orientation_sameness_to_skip_waypoint: false
+  waypoint_orientation_sameness_threshold: 1.0472 # radians
+
+multi_point_navigation_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  points_distance: 0.5
+  look_ahead_distance: 2 # in increments of points_distance
+  obst_check_freq: 3.0 # in Hz
+  goal_tolerance: 0.25
+  yaw_goal_tolerance: 0.523 #0.2 #rad
+  xy_goal_tolerance: 0.05
+  turn_threshold: 0.523 # rad
+  kp: -1.1
+  ki: 0
+  kd: -0.2
+  spline_enable: false
+  obstacle_timeout: -1.0 # -1.0 to set unlimited timeout, only works if stop at obstacle is true or stop at obstacle override is true
+  forward_only: true
+  max_linear_acc: 0.5
+  max_linear_dacc: 1.0
+  max_angular_acc: 0.5
+  max_spline_bypass_degree: 3
+  slow_at_curve_enable: true
+  slow_at_curve_at_the_last_point: false
+  slow_at_each_points_enable: false
+  slow_at_each_n_points_before: 3
+  slow_at_last_point_enable: true
+  slow_at_last_point_distance: 0.5
+  slow_curve_vel: 0.1
+  slow_curve_scale: 60.0
+  skip_first_trail: true
+  stop_at_obstacle_override: true
+  min_linear_vel: 0.05
+  max_linear_vel: 1.0
+  min_angular_vel: 0.0
+  max_angular_vel: 1.0
+  recovery_behavior_enabled_: true
+  recovery_behaviors:
+    - name: 'conservative_reset'
+      type: 'clear_costmap_recovery/ClearCostmapRecovery'
+    # - name: 'rotate_recovery'
+    #   type: 'rotate_recovery/RotateRecovery'
+    - name: 'aggressive_reset'
+      type: 'clear_costmap_recovery/ClearCostmapRecovery'
+  robot_stuck_timeout: 60.0
+  max_robot_stuck_retry: 4
+  is_ackermann: false
+  ackermann_min_turn_radius: 0.174533
+  ackermann_min_dist_last_ang_correction: 0.8
+  visit_back_skipped_points_override: false
+  enable_clear_costmap_when_visit_back: true
+  clear_costmap_when_visit_back_timeout: 10.0 # hotfix
+  use_max_angular_vel_at_min_angle: true
+  min_angle_threshold_for_max_angular_vel: 0.523 # 30
+  stop_before_replan_when_avoiding_timeout: 6.0 # seconds
+  avoiding_plan_points_distance: 0.2
+  max_backward_point_to_replan: 0
+  max_path_distance_tolerance: 0.3 # meters
+  back_to_first_point_if_the_nearest_is_last: false
+  enable_visit_back_unobstructed_path: false
+  min_distance_to_visit_back_unobstructed_path: 0.6
+  lost_of_path_notif_delay: 10.0
+  obstacle_backward_offset: 0
+  obstacle_forward_offset: 1
+  obstacle_check_window: 10
+  enable_move_base_obstacle_avoidance: false
+
+multi_point_local_planner_navigation_handler:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  points_distance: 0.3 # 0.3
+  max_spline_bypass_degree: 3
+  look_ahead_distance: 2.0 # in increments of points_distance
+  goal_tolerance: 0.05
+  angular_tolerance: 0.523 #0.2 #rad
+  spline_enable: false # true
+  obstacle_timeout: 10800 # 300.0 #8.0
+  obst_check_freq: 5.0 # in Hz
+  recovery_behavior_enabled: true
+  recovery_behaviors:
+    - name: 'conservative_reset'
+      type: 'clear_costmap_recovery/ClearCostmapRecovery'
+    # - name: 'rotate_recovery'
+    #   type: 'rotate_recovery/RotateRecovery'
+    - name: 'aggressive_reset'
+      type: 'clear_costmap_recovery/ClearCostmapRecovery'
+  # base_local_planner: "teb_local_planner/TebLocalPlannerROS"
+  base_local_planner: "pebble_local_planner::PebbleLocalPlanner"
+  linear_vel_param_name: "max_vel_x"
+  angular_vel_param_name: "max_vel_theta"
+  controller_frequency: 5.0
+  controller_patience: 5.0
+
+# Recovery behavior config for multi_point_navigation_handler
+conservative_reset:
+  reset_distance: 1.0
+  layer_names: ["obstacle_layer", "lowbstacle_layer"]
+TrajectoryPlannerROS:
+  acc_lim_theta: 0.2
+  max_vel_theta: 0.2
+  min_in_place_vel_theta: 0.1
+  yaw_goal_tolerance: 0.087
+aggressive_reset:
+  reset_distance: 0.0
+  layer_names: ["obstacle_layer", "lowbstacle_layer"]
+
+aruco_handler:
+#general aruco parameters used by both aruco acml and aruco saver
+  watchdog_rate: 2.0 
+  watchdog_timeout: 0
+  aruco_launch_package: "movel_aruco_tools"
+  aruco_detect_camera_info_topic: "/camera/color/camera_info"
+  aruco_detect_image_topic_compressed: "/camera/color/image_raw/compressed"
+  aruco_loc_map_path: "/home/movel/.config/movel/maps/"
+
+  #aruco_saver specific parameters
+  aruco_saver_launch_file: "aruco_saver.launch"
+
+  #aruco_amcl specific parameters
+  aruco_acml_launch_file: "aruco_amcl.launch"
+
+
+# docking:
+#   watchdog_rate: 2.0
+#   watchdog_timeout: 0
+#   service_req: false
+#   launch_req: true
+#   service_start: "/client/dock/start" #required if service_req is true
+#   service_start_msg: "START" #optional  if there is any particular msg needs to sent or else empty string 
+#   service_stop: "/client/dock/stop" #required if service_req is true
+#   service_start_msg: "STOP" #optional  if there is any particular msg needs to sent or else empty string 
+#   launch_package: "yocs_velocity_smoother" #required if launch_req is true
+#   launch_file: "standalone.launch"  #required if launch_req is true
+#   launch_nodes: "/nodelet_manager /velocity_smoother" #required if launch_req is true
+#   topic_cancel_req: true
+
+# undocking:
+#   watchdog_rate: 2.0
+#   watchdog_timeout: 0
+#   service_req: true
+#   launch_req: true
+#   service_start: "/client/dock/start" #required if service_req is true
+#   service_start_msg: "START" #optional  if there is any particular msg needs to sent or else empty string 
+#   service_stop: "/client/dock/stop" #required if service_req is true
+#   service_start_msg: "STOP" #optional  if there is any particular msg needs to sent or else empty string 
+#   launch_package: "yocs_velocity_smoother" #required if launch_req is true
+#   launch_file: "standalone.launch"  #required if launch_req is true
+#   launch_nodes: "/nodelet_manager /velocity_smoother" #required if launch_req is true
+#   topic_cancel_req: true
+#   topic_process_cancel: "/external_process/cancel_publish"
+
+dummy_docking:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  service_req: true
+  launch_req: false
+  service_start: "/external_process/start_docking" #required if service_req is true
+  service_start_msg: "START" #optional  if there is any particular msg needs to sent or else empty string 
+  service_stop: "/external_process/stop_docking" #required if service_req is true
+  service_start_msg: "STOP" #optional  if there is any particular msg needs to sent or else empty string 
+  launch_package: "yocs_velocity_smoother" #required if launch_req is true
+  launch_file: "standalone.launch"  #required if launch_req is true
+  launch_nodes: "/nodelet_manager /velocity_smoother" #required if launch_req is true
+  topic_cancel_req: true
+  topic_process_cancel: "/external_process/cancel_publish"
+
+dummy_undocking:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0
+  service_req: true
+  launch_req: false
+  service_start: "/external_process/start_docking" #required if service_req is true
+  service_start_msg: "START" #optional  if there is any particular msg needs to sent or else empty string 
+  service_stop: "/external_process/stop_docking" #required if service_req is true
+  service_start_msg: "STOP" #optional  if there is any particular msg needs to sent or else empty string 
+  launch_package: "yocs_velocity_smoother" #required if launch_req is true
+  launch_file: "standalone.launch"  #required if launch_req is true
+  launch_nodes: "/nodelet_manager /velocity_smoother" #required if launch_req is true
+  topic_cancel_req: true
+  topic_process_cancel: "/external_process/cancel_publish"
+
+docking_charge:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  loop_rate: 5 #10
+  odom_topic: "/odom"
+  disable_smoother: true
+  use_pre_external_service: false
+  pre_external_service: "/charge_station/pin_up"       # uncomment if use_pre_external_service is true
+  pre_external_cancel_topic:  "/test_cancel"           # uncomment if use_pre_external_service is true
+  use_post_external_service: false
+  # post_external_service: "/lift_fork"                # uncomment if use_post_external_service is true
+  # post_external_cancel_topic: "/test_cancel"         # uncomment if use_post_external_service is true
+  dock: true
+  use_external_feedback: false #true
+  feedback_timeout: 5.0
+  #external_topic: "/external_feedback"  # uncomment if use_external_feedback is true
+  internal_topic: "/movel_diff_drive_docking/success"
+  pause_service: "/movel_diff_drive_docking/pause"
+  docking_launch_package: "dalu_docking" 
+  docking_launch_file: "diff_drive_charging.launch" #"diff_drive_docking_pose1.launch"
+  camera_name: "camera"
+  enable_retry: false
+  undocking_distance: 0.3
+  undocking_speed: -0.1
+  enable_safety_lidar: false #optional, if true will enable safety lidar service
+  enable_safety_lidar_service: "/enable_safety_lidar_service" #your safety lidar service
+
+docking_dual_phase:
+  watchdog_rate: 2.0
+  watchdog_timeout: 30.0
+  loop_rate: 5
+  odom_topic: "/odom"
+  disable_smoother: true
+  use_pre_external_service: false
+  # pre_external_service: "/lift_fork"               # uncomment if use_pre_external_service is true
+  # pre_external_cancel_topic: "/test_cancel"        # uncomment if use_pre_external_service is true    
+  use_post_external_service: false
+  # post_external_service: "/lift_fork"              # uncomment if use_post_external_service is true
+  # post_external_cancel_topic: "/test_cancel"       # uncomment if use_post_external_service is true      
+  dock: true
+  use_external_feedback: false
+  feedback_timeout: 5.0
+  #external_topic: "/external_feedback"  # uncomment if use_external_feedback is true
+  internal_topic: "/movel_diff_drive_docking/success"
+  pause_service: "/movel_diff_drive_docking/pause"
+  docking_launch_package: "dalu_docking"
+  docking_launch_file: "diff_drive_docking.launch" #"diff_drive_docking_pose1.launch"
+  camera_name: "camera"
+  enable_retry: false
+  undocking_distance: 0.3
+  undocking_speed: -0.1
+
+un_docking_charge:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  loop_rate: 10
+  odom_topic: "/odom"
+  disable_smoother: true
+  use_pre_external_service: true
+  external_service: "/charge_station/pin_down"    # uncomment if use_pre_external_service is true
+  external_cancel_topic: "/test_cancel"           # uncomment if use_pre_external_service is true
+  use_post_external_service: false
+  # post_external_service: "/lift_fork"           # uncomment if use_post_external_service is true
+  # post_external_cancel_topic: "/test_cancel"    # uncomment if use_post_external_service is true
+  dock: false
+  undocking_distance: 1.0
+  undocking_speed: -0.1
+
+movel_docking:
+  watchdog_rate: 2.0
+  watchdog_timeout: 0.0
+  loop_rate: 10
+  odom_topic: "/odom"
+  use_external_service: false #true
+  disable_smoother: true
+  disable_basefootprint: false # by default -> navigasi : base_footprint, docking : base_link
+  enable_basefootprint: false
+  external_service: ""       # uncomment if use_external_service is true, service apa yang mau dipanggil saat docking selesai, type trigger
+  external_cancel_topic: ""  # uncomment if use_external_service is true
+  dock: true
+  use_external_feedback: true #true
+  feedback_timeout: 5.0
+  external_topic: "/docking_is_done"  # uncomment if use_external_feedback is true
+  internal_topic: ""
+  pause_service: ""
+  docking_launch_package: "movel_docking"
+  docking_launch_file: "diff_drive_docking.launch" #"diff_drive_docking_pose1.launch"
+  camera_name: "camera"
+  enable_retry: false #true
+  undocking_distance: 0.0
+  undocking_speed: 0.0

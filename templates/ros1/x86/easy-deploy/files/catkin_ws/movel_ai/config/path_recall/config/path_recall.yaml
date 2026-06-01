@@ -1,0 +1,17 @@
+# path_saver & path_recovery
+update_min_d: 0.2
+update_min_a: 0.7854
+
+# path_load_segments
+max_plan_length: 3
+update_min_dist: 0.3
+look_ahead_dist: 0.3
+look_ahead_angle: 1.5708
+update_time_interval: 1.0
+
+# path_recovery
+check_tolerance: 0.4
+skip_on_obstruction: false
+obstruction_threshold: 70
+clearing_timeout: 5.0
+max_ping_count: 15 # don't set this larger than 0 if you plan to enable plan inspector!

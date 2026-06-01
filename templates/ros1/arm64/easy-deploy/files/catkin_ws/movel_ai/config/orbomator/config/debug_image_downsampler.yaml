@@ -1,0 +1,4 @@
+input_topic: "/orb_slam2/debug_image"
+output_topic: "/orb_slam2/debug_image/downsampled"
+throttle_period: 0.5
+scale_factor: 0.5

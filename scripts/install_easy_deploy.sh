@@ -16,9 +16,9 @@ Usage:
   install_easy_deploy.sh --repo OWNER/REPO --ros ros1 --version latest [options]
 
 Examples:
-  EASY_DEPLOY_GITHUB_REPO=company/easy-deploy ./install_easy_deploy.sh --version 2.73.0
-  EASY_DEPLOY_GITHUB_REPO=company/easy-deploy ./install_easy_deploy.sh --version 5.3.9
+  EASY_DEPLOY_GITHUB_REPO=company/easy-deploy ./install_easy_deploy.sh --ros ros1 --version latest
   EASY_DEPLOY_GITHUB_REPO=company/easy-deploy ./install_easy_deploy.sh --ros ros2 --version latest
+  EASY_DEPLOY_GITHUB_REPO=company/easy-deploy ./install_easy_deploy.sh --ros ros2 --version bundle-1.0.0
 
 Options:
   --repo OWNER/REPO        GitHub repository that stores release assets.
@@ -34,11 +34,11 @@ Options:
   --help                   Show this help.
 
 Release convention expected by this script:
-  Tag:   ros1-2.73.0
-  Asset: easy-deploy-ros1-2.73.0-x86.zip
+  Tag:   ros1-bundle-1.0.0
+  Asset: easy-deploy-ros1-bundle-1.0.0-x86.zip
 
-  Tag:   ros2-5.3.9
-  Asset: easy-deploy-ros2-5.3.9-arm64.zip
+  Tag:   ros2-bundle-1.0.0
+  Asset: easy-deploy-ros2-bundle-1.0.0-arm64.zip
 
   Tag:   ros2-rns-ros2-adhoc-qt
   Asset: easy-deploy-ros2-rns-ros2-adhoc-qt-x86.zip

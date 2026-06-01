@@ -1,0 +1,13 @@
+# If using Pebble/DWA/TEB
+
+parameter_name_linear: "max_vel_x"
+parameter_name_angular: "max_vel_theta"
+
+# if using EBandPlannerROS
+
+# parameter_name_linear: "max_vel_lin"
+# parameter_name_angular: "max_vel_th"
+
+velocities:
+  cruising: 0.5
+  cleaning: 0.3

@@ -1,0 +1,5 @@
+polling_interval: 3.0
+timeout_duration: 15.0
+position_cov_threshold: 0.5
+orientation_cov_threshold: 0.5
+publish_localization_lost_popup: true

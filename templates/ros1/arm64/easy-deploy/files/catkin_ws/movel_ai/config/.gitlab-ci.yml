@@ -1,0 +1,16 @@
+# You can override the included template(s) by including variable overrides
+# See https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#priority-of-environment-variables
+stages:
+  - release
+
+release_job:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+  script:
+    - echo "Running the release job."
+    - export SEIRIOS_VERSION=$(head -1 seirios_config_release.yml | grep -oh "[0-9.]*$")
+    - release-cli create --name "Release $SEIRIOS_VERSION" --description "Release created using the release-cli." --tag-name "$SEIRIOS_VERSION"

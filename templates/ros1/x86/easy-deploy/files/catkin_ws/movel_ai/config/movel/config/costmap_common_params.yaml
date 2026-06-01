@@ -1,0 +1,128 @@
+footprint: [ [0.135, 0.135], [0.135, -0.135], [-0.135, -0.135], [-0.135,0.135] ] # waffle3
+#footprint: [ [0.4, 0.3], [0.4, -0.3], [-0.4, -0.3], [-0.4, 0.3] ] # waffle4"
+# robot_radius: 0.38 #0.38 
+# footprint_padding: 0.05 
+map_type: voxel
+track_unknown_space: false
+transform_tolerance: 1.0
+
+obstacle_layer:
+    origin_z: -0.1
+    z_resolution: 1.8 #1.5 This must be higher than the z coordinate of the mounted lidar
+    z_voxels: 1 
+    obstacle_range: 10.0 #10.0
+    raytrace_range: 15.0 #15.0
+    observation_sources:  laser_scan_sensor #point_cloud_sensor
+    observation_persistence: 0.0
+    #unknown_threshold: 1
+    #mark_threshold: 0
+    max_obstacle_height: 2.0
+    track_unknown_space: false 
+
+    laser_scan_sensor: {data_type: LaserScan, topic: /scan/filtered, marking: true, clearing: true, min_obstacle_height: 0.00, max_obstacle_height: 3.00, inf_is_valid: true}
+    # point_cloud_sensor: {sensor_frame: laser_link, data_type: PointCloud2, topic: /lidar_point_cloud/filtered, marking: true, clearing: true, min_obstacle_height: -0.5, max_obstacle_height: 1.00}
+
+lowbstacle_layer:
+    origin_z: -0.1
+    z_resolution: 1.8
+    z_voxels: 1
+    unknown_threshold: 1
+    obstacle_range: 3.5 #if beyond this threshold, then will not mark as obstacle
+    raytrace_range: 5.0 #5.0 Lower this value to detect nearer obstacles with better accuracy
+    observation_sources: mock_scan  # obs_cloud #butt_scan1 butt_scan2
+    publish_voxel_map: true
+    track_unknown_space: false
+    lethal_cost_threshold: 170
+    unknown_cost_value: 255
+    unknown_threshold: 15
+
+    # obs_cloud:
+    #     data_type: PointCloud2
+    #     topic: /obstacles_cloud
+    #     marking: true
+    #     clearing: false
+    #     min_obstacle_height: -0.01
+    #     max_obstacle_height: 0.99
+    #     sensor_frame: base_link
+        
+    mock_scan:
+        data_type: LaserScan
+        topic: /obstacles_scan
+        marking: true
+        clearing: true
+        min_obstacle_height: -0.2
+        max_obstacle_height: 1.00
+        inf_is_valid: true
+        #sensor_frame: base_link
+        
+inflation_layer:
+    enabled: true
+    cost_scaling_factor: 1.0 #added in by John
+    inflation_radius: 0.3
+
+dynamic_obstacle_layer:
+    enabled: false
+    map_tolerance: 0.3
+    footprint_radius: 0.30
+    range: 3.0
+    track_unknown_space: true
+
+rgbd_obstacle_layer:
+  enabled:               true
+  voxel_decay:           20     #seconds if linear, e^n if exponential
+  decay_model:           0      #0=linear, 1=exponential, -1=persistent
+  voxel_size:            0.05   #meters
+  track_unknown_space:   false   #default space is unknown
+  observation_persistence: 0.0  #seconds
+  max_obstacle_height:   2.0    #meters
+  unknown_threshold:     15     #voxel height
+  mark_threshold:        0      #voxel height
+  update_footprint_enabled: true
+  combination_method:    1      #1=max, 0=override
+  obstacle_range:        3.0    #meters
+  origin_z:              0.0    #meters
+  publish_voxel_map:     true   # default off
+  transform_tolerance:   0.2    # seconds
+  mapping_mode:          false  # default off, saves map not for navigation
+  map_save_duration:     60     #default 60s, how often to autosave
+  observation_sources:   rgbd1_clear rgbd1_mark
+  rgbd1_mark:
+    data_type: PointCloud2
+    topic: /obstacles_cloud #camera1/depth/points
+    marking: true
+    clearing: false
+    min_obstacle_height: 0.0 #0.3     #default 0, meters
+    max_obstacle_height: 2.0     #defaule 3, meters
+    expected_update_rate: 0.0    #default 0, if not updating at this rate at least, remove from buffer
+    observation_persistence: 0.0 #default 0, use all measurements taken during now-value, 0=latest 
+    inf_is_valid: false          #default false, for laser scans
+    clear_after_reading: true    #default false, clear the buffer after the layer gets readings from it
+    filter: "voxel"              #default passthrough, apply "voxel", "passthrough", or no filter to sensor data, recommended to have at one filter on
+    voxel_min_points: 0          #default 0, minimum points per voxel for voxel filter
+  rgbd1_clear:
+    enabled: true                #default true, can be toggled on/off with associated service call
+    data_type: PointCloud2
+    topic: /obstacles_cloud #camera1/depth/points
+    marking: false
+    clearing: true
+    min_z: 0.0 #0.1                   #default 0, meters
+    max_z: 7.0                   #default 10, meters
+    vertical_fov_angle: 0.7      #default 0.7, radians
+    horizontal_fov_angle: 1.04   #default 1.04, radians
+    decay_acceleration: 1.       #default 0, 1/s^2. If laser scanner MUST be 0
+    model_type: 0                #default 0 (depth camera). Use 1 for 3D Lidar
+
+# static_layer:
+#     enabled: true
+#     map_topic: "/movel_office"
+#     use_maximum: false
+    
+# static_map: 
+#     map_topic: "/movel_office"
+
+# range_sensor_layer:
+#   topics: ["/sonar_range_lf", "/sonar_range_lb", "/sonar_range_rb", "/sonar_range_rf",  "/sonar_range_fl", "/sonar_range_fr"] #"/sonar_range_bl", "/sonar_range_br",
+#   no_readings_timeout: 0.0 #If zero, this parameter has no effect. Otherwise if the layer does not receive sensor data for this amount of time, the layer will warn the user and the layer will be marked as not current.
+#   clear_threshold: .3 #Cells with a probability lower than the clear_threshold are marked as free space in the master costmap. 
+#   mark_threshold: 0.85 #Cells with a probability higher than the mark_threshold are marked as lethal obstacles in the master costmap.
+#   clear_on_max_reading: true #Whether to clear the sensor readings on max. range

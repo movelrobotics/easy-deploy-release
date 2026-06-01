@@ -1,0 +1,41 @@
+# Input message
+residual_errors_name: "/residual_errors"  # sensor_msgs::LaserScan
+
+# Output messages
+failure_probability_name: "/failure_probability"  # geometry_msgs::Vector3Stamped
+aligned_scan_mrf: "/aligned_scan_mrf"  # sensor_msgs::LaserScan
+misaligned_scan_mrf: "/misaligned_scan_mrf"  # sensor_msgs::LaserScan
+unknown_scan_mrf: "/unknown_scan_mrf"  # sensor_msgs::LaserScan
+publish_classified_scans: true  # If true, the above scan messages will be published.
+
+failure_probability_marker_name: "/failure_probability_marker_name"
+publish_failure_probability_marker: true
+marker_frame: "base_link"
+
+# Parameters related to the likelihood distributions
+# These values must be positive.
+normal_distribution_mean: 0.0
+normal_distribution_var: 0.01
+exponential_distribution_lambda: 2.0
+max_residual_error: 1.0
+residual_error_resolution: 0.05
+
+# Parameters related to the failure probability calculation
+# These values must be positive.
+min_valid_residual_errors_num: 10
+# If you want to reduce the computational cost,
+# please set small values to max_residual_errors_num, max_lpb_computation_num, and sampling_num.
+# In particular, max_residual_errors_num is significant.
+max_residual_errors_num: 500
+max_lpb_computation_num: 1000
+sampling_num: 1000
+# These values must be included from 0 to 1.
+misalignment_ratio_threshold: 0.1
+unknown_ratio_threshold: 0.7
+
+# Processing Hz for the failure detection
+failure_detection_hz: 5.0
+
+# Parameters related to the failure probability calculation
+# This is a row-major matrix, and the sum of each row must be 1.
+transition_probability_matrix: [0.8, 0.0, 0.2, 0.0, 0.8, 0.2, 0.333333, 0.333333, 0.333333]

@@ -1,0 +1,4 @@
+width: 100    # width -- map piece width, in pixels
+height: 100   #height -- map piece height, in pixels
+overlap: 10   #overlap -- map overlap, in pixels
+scale: 1      #scale -- for the scale-down operation. Source map dimensions are divided by this value. A scale of 2 gives you a scaled map with half the width and height.

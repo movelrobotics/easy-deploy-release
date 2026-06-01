@@ -1,0 +1,8 @@
+tag_id: 0
+apriltag_x_offset: 0.2 #1.7 #in meters
+apriltag_y_offset: 0.0 #in meters
+apriltag_yaw_offset: 0.0 #in radians
+reverse: false
+apriltag_yaw_tolerance: 0.700
+frames_tracked: 30
+tag_quantity: 2

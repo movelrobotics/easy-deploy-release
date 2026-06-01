@@ -1,0 +1,10 @@
+safety_camera_cloud_cropbox:
+  min_x: 0           #min x: back
+  max_x: 0.7          #max x: front
+  min_y: -0.5         #min y: right
+  max_y: 0.5          #max y: left
+  min_z: -1
+  max_z: 1
+  negative: False
+  # input_frame: base_link
+  # output_frame: base_link

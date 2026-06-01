@@ -1,0 +1,17 @@
+topic_depth_pointcloud: /camera/depth/points/filtered   # change to match depth camera topic
+
+x_min: 0
+x_max: 30.0
+y_min: -10.0
+y_max: 10.0
+z_min: 0.1
+z_max: 0.5
+
+enable_voxel_grid: true
+leaf_size: 0.01
+
+enable_sor: true
+mean_k: 40
+std_dev_mul_thres: 1.0
+
+min_points: 1

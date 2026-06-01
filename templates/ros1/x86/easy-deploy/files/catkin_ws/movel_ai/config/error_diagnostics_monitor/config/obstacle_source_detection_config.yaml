@@ -1,0 +1,11 @@
+constant_publish: false
+checker_frequency: 10.0
+enable_2d_lidar: false
+enable_3d_lidar: false
+enable_camera: false
+sensor_data_padding: 0.5
+minimum_points: 1
+min_obstacle_height: -1.0
+max_obstacle_height: 2.0
+look_ahead_distance: 2.2
+radius_threshold_to_use_lookahead_distance: 0.7

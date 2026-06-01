@@ -2,90 +2,92 @@
 
 This guide is for customers or deployment engineers who need to install Easy Deploy on a robot PC.
 
-## Quick Start
+The current distribution model uses a private GitHub repository. A temporary GitHub token is required to download the installer script and release assets.
 
-Set the repository and branch first:
+## Quick Start With Temporary GitHub Token
 
-```bash
-export EASY_DEPLOY_REPO=movelrobotics/easy-deploy-release
-export EASY_DEPLOY_BRANCH=main
-```
-
-When using `curl | bash`, choose one mode explicitly:
-
-- Use `--no-install` to download and extract only.
-- Use `--yes` to download, extract, and run the installer immediately.
-
-Do not rely on the interactive prompt in `curl | bash` mode because stdin is already used by the pipe.
-
-### Download And Extract Only
-
-ROS1 latest:
-
-```bash
-curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest --no-install
-```
-
-ROS2 latest:
-
-```bash
-curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest --no-install
-```
-
-After download/extract only mode, install manually from the extracted package:
-
-```bash
-cd ~/Downloads/easy-deploy/easy-deploy-ros2-5.3.9-x86
-bash install-2-seirios.sh
-```
-
-### Download, Extract, And Install
-
-ROS1 latest:
-
-```bash
-curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest --yes
-```
-
-ROS2 latest:
-
-```bash
-curl -fsSL "https://raw.githubusercontent.com/${EASY_DEPLOY_REPO}/${EASY_DEPLOY_BRANCH}/scripts/install_easy_deploy.sh" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest --yes
-```
-
-For a private repository, export a GitHub token first:
+Set the temporary GitHub token provided by Movel Robotics:
 
 ```bash
 export GITHUB_TOKEN=ghp_xxx
-export EASY_DEPLOY_REPO=movelrobotics/easy-deploy-release
-export EASY_DEPLOY_BRANCH=main
 ```
 
-Then download and extract ROS1 latest:
+Download, extract, and install ROS1 latest:
 
 ```bash
 curl -fsSL \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
   -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/${EASY_DEPLOY_REPO}/contents/scripts/install_easy_deploy.sh?ref=${EASY_DEPLOY_BRANCH}" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros1 --version latest --no-install
+  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros1 --version latest --yes
 ```
 
-Or download and extract ROS2 latest:
+Download, extract, and install ROS2 latest:
 
 ```bash
 curl -fsSL \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
   -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/${EASY_DEPLOY_REPO}/contents/scripts/install_easy_deploy.sh?ref=${EASY_DEPLOY_BRANCH}" \
-  | bash -s -- --repo "${EASY_DEPLOY_REPO}" --ros ros2 --version latest --no-install
+  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros2 --version latest --yes
 ```
 
-If `raw.githubusercontent.com` returns `404`, check the branch name and repository visibility. Private repositories should use the GitHub API command above.
+## Safe Test Mode
+
+Use `--no-install` to only download and extract the package without running the installer.
+
+ROS1 latest download only:
+
+```bash
+curl -fsSL \
+  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros1 --version latest --no-install
+```
+
+ROS2 latest download only:
+
+```bash
+curl -fsSL \
+  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros2 --version latest --no-install
+```
+
+After download-only mode, install manually from the extracted package:
+
+```bash
+cd ~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86
+bash install-2-seirios.sh
+```
+
+## Specific Bundle Install
+
+Install a specific ROS1 bundle:
+
+```bash
+bash install_easy_deploy.sh \
+  --repo movelrobotics/easy-deploy-release \
+  --ros ros1 \
+  --version bundle-1.0.0 \
+  --yes
+```
+
+Install a specific ROS2 bundle:
+
+```bash
+bash install_easy_deploy.sh \
+  --repo movelrobotics/easy-deploy-release \
+  --ros ros2 \
+  --version bundle-1.0.0 \
+  --yes
+```
+
+Clients do not need to know backend/frontend/config component versions. The selected bundle already contains those versions.
+
+## Architecture Detection
 
 The installer automatically detects the machine architecture:
 
@@ -98,77 +100,62 @@ arm64   -> arm64
 Only one matching zip is downloaded. For example, ROS2 on an x86 machine downloads only:
 
 ```text
-easy-deploy-ros2-<version>-x86.zip
+easy-deploy-ros2-<bundle-id>-x86.zip
 ```
 
 It does not download arm64 packages or ROS1 packages.
 
-To download a package for another machine architecture, use `--arch` with `--no-install`.
+To download a package for another machine architecture, use `--arch` with `--no-install`:
+
+```bash
+bash install_easy_deploy.sh \
+  --repo movelrobotics/easy-deploy-release \
+  --ros ros2 \
+  --version latest \
+  --arch arm64 \
+  --no-install
+```
+
+Architecture override is for downloading only when the requested package architecture differs from the current machine. Cross-architecture installation is not supported.
 
 ## What The Installer Does
 
 The installer:
 
 1. Detects the machine architecture.
-2. Resolves the requested ROS line and version.
+2. Resolves the requested ROS line and bundle id.
 3. Downloads the matching Easy Deploy zip from GitHub Releases.
 4. Extracts the package into `~/Downloads/easy-deploy` by default.
 5. Overwrites existing Easy Deploy config during reinstall.
-6. Runs the package installer script.
+6. Runs the package installer script when `--yes` is used or the prompt is confirmed.
 
-## Installation Commands
+## Token Requirements
 
-Install ROS1 latest:
-
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --ros ros1 \
-  --version latest
-```
-
-Install ROS2 latest:
-
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --ros ros2 \
-  --version latest
-```
-
-Install a specific ROS1 version:
-
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --version 2.73.0
-```
-
-Install a specific ROS2 version:
-
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --version 5.3.9
-```
-
-For numeric versions, the installer can infer the ROS line:
+The temporary token must be able to read:
 
 ```text
-2.x.x -> ros1
-5.x.x -> ros2
+movelrobotics/easy-deploy-release repository contents
+movelrobotics/easy-deploy-release release assets
 ```
 
-For non-numeric versions, specify the ROS line explicitly:
+For a classic personal access token, the minimum practical private-repo scope is:
 
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --ros ros2 \
-  --version rns-ros2-adhoc-qt
+```text
+repo
 ```
 
-Download and extract only, without running the installer:
+For a fine-grained personal access token, use repository-only access to `movelrobotics/easy-deploy-release` with:
+
+```text
+Contents: Read-only
+Metadata: Read-only
+```
+
+The token should have a short expiration, for example 3 days, and should be revoked after deployment is complete.
+
+## Additional Commands
+
+Download and extract only:
 
 ```bash
 bash install_easy_deploy.sh \
@@ -198,45 +185,6 @@ bash install_easy_deploy.sh \
   --download-dir /tmp/easy-deploy
 ```
 
-Download an arm64 package from an x86 machine for offline transfer:
-
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --ros ros2 \
-  --version latest \
-  --arch arm64 \
-  --no-install
-```
-
-Download an x86 package from an arm64 machine for offline transfer:
-
-```bash
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --ros ros1 \
-  --version latest \
-  --arch x86 \
-  --no-install
-```
-
-Architecture override is for downloading only when the requested package architecture differs from the current machine. Cross-architecture installation is not supported.
-
-## Private Repository Access
-
-If the GitHub repository is private, provide a GitHub token before running the installer:
-
-```bash
-export GITHUB_TOKEN=ghp_xxx
-
-bash install_easy_deploy.sh \
-  --repo movelrobotics/easy-deploy-release \
-  --ros ros2 \
-  --version latest
-```
-
-The token must have permission to read repository contents and releases.
-
 ## Expected Download Structure
 
 By default, the downloaded zip and extracted package are stored under:
@@ -249,8 +197,8 @@ Example after downloading ROS2 x86:
 
 ```text
 ~/Downloads/easy-deploy/
-  easy-deploy-ros2-5.3.9-x86.zip
-  easy-deploy-ros2-5.3.9-x86/
+  easy-deploy-ros2-bundle-1.0.0-x86.zip
+  easy-deploy-ros2-bundle-1.0.0-x86/
     ARCH.txt
     PACKAGE_DATE.txt
     release_info.json
@@ -277,7 +225,7 @@ Example after downloading ROS2 x86:
 The package metadata is available at:
 
 ```text
-~/Downloads/easy-deploy/easy-deploy-ros2-5.3.9-x86/release_info.json
+~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86/release_info.json
 ```
 
 ## Expected Installed Structure
@@ -319,18 +267,20 @@ This ensures the latest package config is used.
 If the package was downloaded with `--no-install`, run the installer manually:
 
 ```bash
-cd ~/Downloads/easy-deploy/easy-deploy-ros2-5.3.9-x86
+cd ~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86
 bash install-2-seirios.sh
 ```
 
 For Docker installation only:
 
 ```bash
-cd ~/Downloads/easy-deploy/easy-deploy-ros2-5.3.9-x86
+cd ~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86
 bash install-1-docker.sh
 ```
 
 ## Troubleshooting
+
+If `raw.githubusercontent.com` returns `404`, use the GitHub API command shown in the Quick Start section because this repository is private.
 
 If the architecture does not match, the installer stops before installing:
 
@@ -338,20 +288,11 @@ If the architecture does not match, the installer stops before installing:
 Architecture does not match
 ```
 
-Use the correct machine type or download the matching package.
-
-If Docker image pull fails, confirm that the release version exists as a Docker image tag:
-
-```text
-movelrobots/rns-ros:<version>
-movelrobots/rns-ros2:<version>
-```
+If Docker image pull fails, confirm that all image tags in `release_info.json` exist in the Docker registry.
 
 If the release cannot be found, confirm the GitHub Release tag format:
 
 ```text
-ros1-<version>
-ros2-<version>
+ros1-<bundle-id>
+ros2-<bundle-id>
 ```
-
-If the repository is private, confirm `GITHUB_TOKEN` is set and has read access.

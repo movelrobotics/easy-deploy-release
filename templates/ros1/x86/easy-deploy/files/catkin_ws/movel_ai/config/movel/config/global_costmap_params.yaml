@@ -1,0 +1,26 @@
+global_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  update_frequency: 1.0
+  publish_frequency: 1.0
+  width: 50
+  height: 50
+  static_map: true
+  rolling_window: false
+  resolution: 0.05
+
+  # inflation_layer:
+  #   enabled: true
+  #   cost_scaling_factor: 1.0 #added in by John
+  #   inflation_radius: 0.45 #2.0 #0.7 #0.45 #0.475 #0.45 #Minimum value: 0.379
+
+  plugins:
+    # - {name: range_sensor_layer, type: "range_sensor_layer::RangeSensorLayer"}
+    - {name: static_layer, type: "costmap_2d::StaticLayer"}
+    - {name: lowbstacle_layer, type: "costmap_2d::VoxelLayer"}
+    - {name: obstacle_layer, type: "costmap_2d::VoxelLayer"}
+    #- {name: rgbd_obstacle_layer, type: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"}
+    - {name: costmap_prohibition_layer,       type: "movel_costmap_2d::CostmapProhibitionLayer"}
+    # - {name: dynamic_obstacle_layer, type: "dynamic_obstacle_layer::DynamicLayer"}
+    - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+    # - {name: static_map, type: "costmap_2d::StaticLayer"}

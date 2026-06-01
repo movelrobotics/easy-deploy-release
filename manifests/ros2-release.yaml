@@ -1,0 +1,26 @@
+bundle:
+  id: bundle-1.0.1
+  ros: ros2
+  author: Movel Robotics
+
+config:
+  path: ./rns-config2-release-5.3.0
+
+images:
+  x86:
+    rns: movelrobots/rns-ros2:5.3.9
+    backend: movelrobots/rns-backend:4.39.0-alpha
+    frontend: movelrobots/rns-frontend:4.39.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
+
+  arm64:
+    rns: movelrobots/rns-ros2:5.3.9
+    backend: movelrobots/rns-backend:arm64-4.39.0-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.39.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4

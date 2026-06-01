@@ -1,0 +1,16 @@
+pointcloud_mux_enable: false
+
+pointcloud_output: "/pointcloud_mux/pointcloud"
+
+# List camera pointcloud topics
+
+front_view_pointcloud: "/camera/depth/points"
+rear_view_pointcloud: "/rear_camera/depth/points"
+
+front_rear_mode_enable: true #set to true if only switch for front and rear view
+
+left_view_pointcloud: "" #no need to set if front_rear_mode_enabled_ is true
+right_view_pointcloud: "" #no need to set if front_rear_mode_enabled_ is true
+
+# Threshold angular speed to switch to left/right views
+angular_speed_threshold: 0.2 #no need to set if front_rear_mode_enabled_ is true

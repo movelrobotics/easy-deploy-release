@@ -1,0 +1,7 @@
+topic_laser_in: "scan"
+x_min: -2.8
+x_max: -0.4
+y_min: -0.6
+y_max: 0.4
+z_min: 0
+z_max: 1.0

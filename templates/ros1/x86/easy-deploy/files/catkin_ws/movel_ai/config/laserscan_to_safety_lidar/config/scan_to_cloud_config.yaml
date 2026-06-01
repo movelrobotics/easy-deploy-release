@@ -1,0 +1,11 @@
+high_fidelity: False
+target_frame: "laser_link"
+
+# scan_filter_chain:
+# - name: angle
+#   type: laser_filters/LaserScanAngularBoundsFilterInPlace
+#   params:
+#     lower_angle: 6.28
+#     upper_angle: 0 #3.14-0.8
+#     # lower_angle: 0.8
+#     # upper_angle: 5.48 #3.14-0.8

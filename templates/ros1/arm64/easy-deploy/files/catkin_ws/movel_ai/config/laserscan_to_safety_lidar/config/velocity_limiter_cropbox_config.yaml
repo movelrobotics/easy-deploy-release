@@ -1,0 +1,26 @@
+# # Uncomment if you want to activate the velocity limiter
+# safety_scan_cloud_cropbox_1:
+#   min_x: -1.0
+#   max_x: 1.0
+#   min_y: -1.0
+#   max_y: 1.0
+#   min_z: -0.5
+#   max_z: 0.5
+#   negative: False
+#   max_linear: 0.2
+#   max_angular: 0.2
+#   input_topic: /raw_safety_lidar_cloud
+#   output_topic: /slow_down_zone1
+
+# safety_scan_cloud_cropbox_2:
+#   min_x: -2.0
+#   max_x: 2.0
+#   min_y: -2.0
+#   max_y: 2.0
+#   min_z: -1.0
+#   max_z: 1.0
+#   negative: False
+#   max_linear: 0.5
+#   max_angular: 0.5
+#   input_topic: /raw_safety_lidar_cloud
+#   output_topic: /slow_down_zone2

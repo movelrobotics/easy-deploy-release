@@ -1,0 +1,24 @@
+name: release
+run-name: Release Workflow
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    permissions: write-all
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Tagging
+        run: |
+          SEIRIOS_VERSION=$(head -1 seirios_config_release.yml | grep -oh "[0-9.]*$")
+          echo $SEIRIOS_VERSION
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git tag "$SEIRIOS_VERSION" -m "Master release v$SEIRIOS_VERSION"
+          git push origin "$SEIRIOS_VERSION"

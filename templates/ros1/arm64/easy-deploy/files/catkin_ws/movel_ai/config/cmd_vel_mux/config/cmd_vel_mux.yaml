@@ -1,0 +1,36 @@
+# Rate of the control loop
+# Unit: hz
+loop_rate: 20.0
+
+# Timeout for velocity commands from the safety monitor
+# Unit: seconds
+timeout_safety: 0.2
+
+# Timeout for velocity commands from teleop nodes
+# Unit: seconds
+timeout_teleop: 0.3
+
+# Timeout for velocity commands from navigation nodes
+# Unit: seconds
+timeout_autonomous: 0.3
+
+# pub zeros when robot is not receiving cmds
+pub_zero_on_idle: true
+
+validation:
+  loop_rate:
+    min: 0.0
+    max: 500.0
+  timeout_safety:
+    min: 0.0
+    max: 100.0
+  timeout_teleop:
+    min: 0.0
+    max: 100.0
+  timeout_autonomous:
+    min: 0.0
+    max: 100.0
+
+enable_safety_lidar: false
+enable_lidar_velocity_limiter: false
+movement_mode: "forward"  # Options: "forward", "backward", "forward_and_turning", "backward_and_turning", "full"
