@@ -2,57 +2,46 @@
 
 This guide is for customers or deployment engineers who need to install Easy Deploy on a robot PC.
 
-The current distribution model uses a private GitHub repository. A temporary GitHub token is required to download the installer script and release assets.
+The current distribution model uses a public GitHub repository and public GitHub Release assets. No GitHub token is required for the standard client installation flow.
 
-## Quick Start With Temporary GitHub Token
+## Quick Start 
 
-Set the temporary GitHub token provided by Movel Robotics:
+Use these commands for the normal public repository installation flow.
+
+System will auto detect for x86 or arm
+
+--yes (install the pacakge easy deploy)
+--no-install (without install the package, only download)
+
+Install ROS1 latest:
 
 ```bash
-export GITHUB_TOKEN=ghp_xxx
-```
-
-Download, extract, and install ROS1 latest:
-
-```bash
-curl -fsSL \
-  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-  -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+curl -fsSL https://raw.githubusercontent.com/movelrobotics/easy-deploy-release/master/scripts/install_easy_deploy.sh \
   | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros1 --version latest --yes
 ```
 
-Download, extract, and install ROS2 latest:
+Install ROS2 latest:
 
 ```bash
-curl -fsSL \
-  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-  -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+curl -fsSL https://raw.githubusercontent.com/movelrobotics/easy-deploy-release/master/scripts/install_easy_deploy.sh \
   | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros2 --version latest --yes
 ```
 
-## Safe Test Mode
+## Download Only
 
 Use `--no-install` to only download and extract the package without running the installer.
 
 ROS1 latest download only:
 
 ```bash
-curl -fsSL \
-  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-  -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+curl -fsSL https://raw.githubusercontent.com/movelrobotics/easy-deploy-release/master/scripts/install_easy_deploy.sh \
   | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros1 --version latest --no-install
 ```
 
 ROS2 latest download only:
 
 ```bash
-curl -fsSL \
-  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-  -H "Accept: application/vnd.github.raw" \
-  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+curl -fsSL https://raw.githubusercontent.com/movelrobotics/easy-deploy-release/master/scripts/install_easy_deploy.sh \
   | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros2 --version latest --no-install
 ```
 
@@ -63,6 +52,26 @@ cd ~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86
 bash install-2-seirios.sh
 ```
 
+## Private Repository Fallback
+
+If this repository is changed back to private, a GitHub token is required. Set the temporary token provided by Movel Robotics:
+
+```bash
+export GITHUB_TOKEN=ghp_xxx
+```
+
+Then use the GitHub API raw content endpoint:
+
+```bash
+curl -fsSL \
+  -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+  -H "Accept: application/vnd.github.raw" \
+  "https://api.github.com/repos/movelrobotics/easy-deploy-release/contents/scripts/install_easy_deploy.sh?ref=master" \
+  | bash -s -- --repo movelrobotics/easy-deploy-release --ros ros2 --version latest --yes
+```
+
+Do not share the token publicly. Do not paste the token into tickets, README files, screenshots, or shared logs.
+
 ## Specific Bundle Install
 
 Install a specific ROS1 bundle:
@@ -71,7 +80,7 @@ Install a specific ROS1 bundle:
 bash install_easy_deploy.sh \
   --repo movelrobotics/easy-deploy-release \
   --ros ros1 \
-  --version bundle-1.0.0 \
+  --version bundle-1.0.1 \
   --yes
 ```
 
@@ -81,7 +90,7 @@ Install a specific ROS2 bundle:
 bash install_easy_deploy.sh \
   --repo movelrobotics/easy-deploy-release \
   --ros ros2 \
-  --version bundle-1.0.0 \
+  --version bundle-1.0.1 \
   --yes
 ```
 
@@ -129,9 +138,9 @@ The installer:
 5. Overwrites existing Easy Deploy config during reinstall.
 6. Runs the package installer script when `--yes` is used or the prompt is confirmed.
 
-## Token Requirements
+## Private Repository Token Requirements
 
-The temporary token must be able to read:
+This section is only needed if `movelrobotics/easy-deploy-release` is changed back to private. The temporary token must be able to read:
 
 ```text
 movelrobotics/easy-deploy-release repository contents
@@ -280,7 +289,7 @@ bash install-1-docker.sh
 
 ## Troubleshooting
 
-If `raw.githubusercontent.com` returns `404`, use the GitHub API command shown in the Quick Start section because this repository is private.
+If `raw.githubusercontent.com` returns `404`, confirm the repository is public and the branch is `master`. If the repository is private, use the command in the Private Repository Fallback section.
 
 If the architecture does not match, the installer stops before installing:
 
