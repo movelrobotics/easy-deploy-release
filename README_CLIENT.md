@@ -8,10 +8,10 @@ The current distribution model uses a public GitHub repository and public GitHub
 
 Use these commands for the normal public repository installation flow.
 
-System will auto detect for x86 or arm
+System will auto detect x86 or arm.
 
---yes (install the pacakge easy deploy)
---no-install (without install the package, only download)
+`--yes` installs the Easy Deploy package.
+`--no-install` only downloads and extracts the package.
 
 Install ROS1 latest:
 
@@ -49,6 +49,7 @@ After download-only mode, install manually from the extracted package:
 
 ```bash
 cd ~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86
+bash install-1-docker.sh
 bash install-2-seirios.sh
 ```
 
@@ -132,11 +133,14 @@ Architecture override is for downloading only when the requested package archite
 The installer:
 
 1. Detects the machine architecture.
-2. Resolves the requested ROS line and bundle id.
+2. Resolves the requested ROS line and bundle/version.
 3. Downloads the matching Easy Deploy zip from GitHub Releases.
 4. Extracts the package into `~/Downloads/easy-deploy` by default.
 5. Overwrites existing Easy Deploy config during reinstall.
-6. Runs the package installer script when `--yes` is used or the prompt is confirmed.
+6. Runs `install-1-docker.sh` first when `--yes` is used or the prompt is confirmed.
+7. Runs `install-2-seirios.sh` after Docker installation completes.
+
+For direct installs, the wrapper skips the Docker installer's re-login shell and runs the Seirios installer in a Docker group session when required.
 
 ## Private Repository Token Requirements
 
@@ -277,6 +281,7 @@ If the package was downloaded with `--no-install`, run the installer manually:
 
 ```bash
 cd ~/Downloads/easy-deploy/easy-deploy-ros2-bundle-1.0.0-x86
+bash install-1-docker.sh
 bash install-2-seirios.sh
 ```
 

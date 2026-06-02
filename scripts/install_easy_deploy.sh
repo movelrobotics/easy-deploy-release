@@ -133,14 +133,23 @@ resolve_latest_version() {
     local repo=$1
     local ros_line=$2
     local releases_api="https://api.github.com/repos/${repo}/releases?per_page=100"
+    local tags
     local version
 
-    version=$(github_api_get "${releases_api}" \
-        | sed -nE 's/.*"tag_name":[[:space:]]*"([^"[:space:]]+)".*/\1/p' \
-        | sed -nE "s/^${ros_line}-(.+)$/\1/p" \
-        | head -n 1)
+    tags=$(github_api_get "${releases_api}" \
+        | sed -nE 's/.*"tag_name":[[:space:]]*"([^"[:space:]]+)".*/\1/p')
 
-    [[ -n "${version}" ]] || die "No GitHub Release found for ${ros_line} in ${repo}"
+    version=$(printf '%s\n' "${tags}" \
+        | sed -nE "s/^${ros_line}-(bundle-[A-Za-z0-9_.-]+)$/\1/p" \
+        | sed -n '1p')
+
+    if [[ -z "${version}" ]]; then
+        version=$(printf '%s\n' "${tags}" \
+            | sed -nE "s/^${ros_line}-([0-9]+([.][0-9]+)+)$/\1/p" \
+            | sed -n '1p')
+    fi
+
+    [[ -n "${version}" ]] || die "No bundle or legacy GitHub Release found for ${ros_line} in ${repo}"
     printf '%s' "${version}"
 }
 
@@ -187,6 +196,33 @@ overwrite_existing_config() {
         log "Overwriting existing config: ${target_config}"
         rm -rf "${target_config}"
         cp -a "${source_config}" "${target_config}"
+    fi
+}
+
+run_easy_deploy_installers() {
+    local package_dir=$1
+    local docker_installer="${package_dir}/install-1-docker.sh"
+    local seirios_installer="${package_dir}/install-2-seirios.sh"
+    local user_name="${USER:-$(id -un)}"
+    local quoted_package_dir
+
+    [[ -f "${docker_installer}" ]] || die "Docker installer not found: ${docker_installer}"
+    [[ -f "${seirios_installer}" ]] || die "Seirios installer not found: ${seirios_installer}"
+
+    printf -v quoted_package_dir '%q' "${package_dir}"
+
+    log "Running Docker installer: install-1-docker.sh"
+    (cd "${package_dir}" && EASY_DEPLOY_SKIP_RELOGIN=1 bash install-1-docker.sh < /dev/null)
+
+    log "Running Easy Deploy installer: install-2-seirios.sh"
+    if command -v docker >/dev/null 2>&1 && docker image ls >/dev/null 2>&1; then
+        (cd "${package_dir}" && bash install-2-seirios.sh < /dev/null)
+    elif id -nG "${user_name}" | tr ' ' '\n' | grep -qx docker; then
+        require_command sg
+        log "Using docker group session for install-2-seirios.sh"
+        sg docker -c "cd ${quoted_package_dir} && bash install-2-seirios.sh < /dev/null"
+    else
+        die "Docker is installed, but ${user_name} is not in the docker group. Log out and back in, then run: cd '${package_dir}' && bash install-2-seirios.sh"
     fi
 }
 
@@ -290,12 +326,11 @@ if [[ "${ASSUME_YES}" -eq 0 ]]; then
         y|Y|yes|YES)
             ;;
         *)
-            log "Installer skipped. Run manually: cd '${PACKAGE_DIR}' && bash install-2-seirios.sh"
+            log "Installer skipped. Run manually: cd '${PACKAGE_DIR}' && bash install-1-docker.sh && bash install-2-seirios.sh"
             exit 0
             ;;
     esac
 fi
 
 overwrite_existing_config "${PACKAGE_DIR}"
-cd "${PACKAGE_DIR}"
-bash install-2-seirios.sh
+run_easy_deploy_installers "${PACKAGE_DIR}"
