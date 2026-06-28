@@ -138,7 +138,9 @@ default-context: &default-context
 master-branch: &master-branch
   filters:
     branches:
-      only: master
+      only:
+        - master
+        - circleci-project-setup  # kept enabled for release testing
 
 executors:
   cimg-base:
