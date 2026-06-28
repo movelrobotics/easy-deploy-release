@@ -138,9 +138,7 @@ default-context: &default-context
 master-branch: &master-branch
   filters:
     branches:
-      only:
-        - master
-        - circleci-project-setup  # TEMP(Stage 2 test): remove before merge to master
+      only: master
 
 executors:
   cimg-base:
@@ -184,7 +182,7 @@ jobs:
           command: |
             # gh authenticates via GH_TOKEN; the config clone uses GITHUB_USER/GITHUB_TOKEN.
             export GH_TOKEN="${GITHUB_TOKEN}"
-            bash scripts/release.sh --no-upload  # TEMP(Stage 2 test): remove --no-upload before merge to master
+            bash scripts/release.sh
       - run:
           name: Summarize produced assets
           when: always
@@ -193,6 +191,13 @@ jobs:
             cat dist/manifest.json 2>/dev/null || echo "(no manifest.json)"
             echo "=== dist assets ==="
             ls -lh dist/*.zip 2>/dev/null || echo "(no zips produced)"
+      - run:
+          name: Clean up built zips
+          # The zips are uploaded to GitHub Releases; free the ~hundreds of MB
+          # they occupy. Runs only after a successful publish.
+          command: |
+            rm -f dist/*.zip
+            echo "Cleaned dist/*.zip"
       - notify:
           when: "failure"
           webhook: ${GOOGLE_CHAT_WEBHOOK}
