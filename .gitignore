@@ -3,6 +3,7 @@ dist/
 *.tar.gz
 *.log
 .env
+.release/
 rns-config-release-*/
 rns-config2-release-*/
 easy-deploy-ros2:*/

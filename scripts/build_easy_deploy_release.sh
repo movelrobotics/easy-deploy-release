@@ -8,6 +8,7 @@ WORK_DIR="${WORK_DIR:-${DIST_DIR}/.work}"
 RELEASE_AUTHOR="${RELEASE_AUTHOR:-Movel AI}"
 AUTHOR_SET=0
 BUILD_DATE=""
+DEPLOY_FOR="${DEPLOY_FOR:-both}"
 
 ROS1_CONFIG_DIR="${ROS1_CONFIG_DIR:-${ROOT_DIR}/rns-config-release-2.73.0}"
 ROS2_CONFIG_DIR="${ROS2_CONFIG_DIR:-${ROOT_DIR}/rns-config2-release-5.3.0}"
@@ -31,6 +32,10 @@ Options:
   --ros2-config-dir DIR        Fallback ROS2 config directory.
   --author NAME                Release author. Default: manifest author,
                                RELEASE_AUTHOR, or "Movel AI".
+  --deploy-for TARGET          Which ros line(s) to build: ros1, ros2, or both.
+                               Default: both. When set to a single ros line,
+                               the other line's config/manifest are not read
+                               and its packages are not built.
   --help                       Show this help.
 
 Environment overrides:
@@ -498,43 +503,55 @@ build_package() {
 
 write_manifest() {
     local manifest_file="${DIST_DIR}/manifest.json"
+    local assets=""
+    local comma=""
+
+    if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
+        assets+="${comma}    {
+      \"ros\": \"ros1\",
+      \"bundle_id\": \"${ROS1_VERSION}\",
+      \"config_version\": \"${ROS1_CONFIG_VERSION}\",
+      \"arch\": \"x86\",
+      \"file\": \"easy-deploy-ros1-${ROS1_VERSION}-x86.zip\",
+      \"github_release_tag\": \"ros1-${ROS1_VERSION}\"
+    },
+    {
+      \"ros\": \"ros1\",
+      \"bundle_id\": \"${ROS1_VERSION}\",
+      \"config_version\": \"${ROS1_CONFIG_VERSION}\",
+      \"arch\": \"arm64\",
+      \"file\": \"easy-deploy-ros1-${ROS1_VERSION}-arm64.zip\",
+      \"github_release_tag\": \"ros1-${ROS1_VERSION}\"
+    }"
+        comma=$',\n'
+    fi
+
+    if [[ ${ROS2_IN_SCOPE} -eq 1 ]]; then
+        assets+="${comma}    {
+      \"ros\": \"ros2\",
+      \"bundle_id\": \"${ROS2_VERSION}\",
+      \"config_version\": \"${ROS2_CONFIG_VERSION}\",
+      \"arch\": \"x86\",
+      \"file\": \"easy-deploy-ros2-${ROS2_VERSION}-x86.zip\",
+      \"github_release_tag\": \"ros2-${ROS2_VERSION}\"
+    },
+    {
+      \"ros\": \"ros2\",
+      \"bundle_id\": \"${ROS2_VERSION}\",
+      \"config_version\": \"${ROS2_CONFIG_VERSION}\",
+      \"arch\": \"arm64\",
+      \"file\": \"easy-deploy-ros2-${ROS2_VERSION}-arm64.zip\",
+      \"github_release_tag\": \"ros2-${ROS2_VERSION}\"
+    }"
+        comma=$',\n'
+    fi
+
     cat > "${manifest_file}" <<EOF
 {
   "generated_at": "$(date -Iseconds)",
   "author": "$(json_escape "${RELEASE_AUTHOR}")",
   "assets": [
-    {
-      "ros": "ros1",
-      "bundle_id": "${ROS1_VERSION}",
-      "config_version": "${ROS1_CONFIG_VERSION}",
-      "arch": "x86",
-      "file": "easy-deploy-ros1-${ROS1_VERSION}-x86.zip",
-      "github_release_tag": "ros1-${ROS1_VERSION}"
-    },
-    {
-      "ros": "ros1",
-      "bundle_id": "${ROS1_VERSION}",
-      "config_version": "${ROS1_CONFIG_VERSION}",
-      "arch": "arm64",
-      "file": "easy-deploy-ros1-${ROS1_VERSION}-arm64.zip",
-      "github_release_tag": "ros1-${ROS1_VERSION}"
-    },
-    {
-      "ros": "ros2",
-      "bundle_id": "${ROS2_VERSION}",
-      "config_version": "${ROS2_CONFIG_VERSION}",
-      "arch": "x86",
-      "file": "easy-deploy-ros2-${ROS2_VERSION}-x86.zip",
-      "github_release_tag": "ros2-${ROS2_VERSION}"
-    },
-    {
-      "ros": "ros2",
-      "bundle_id": "${ROS2_VERSION}",
-      "config_version": "${ROS2_CONFIG_VERSION}",
-      "arch": "arm64",
-      "file": "easy-deploy-ros2-${ROS2_VERSION}-arm64.zip",
-      "github_release_tag": "ros2-${ROS2_VERSION}"
-    }
+${assets}
   ]
 }
 EOF
@@ -582,6 +599,10 @@ while [[ $# -gt 0 ]]; do
             AUTHOR_SET=1
             shift 2
             ;;
+        --deploy-for)
+            DEPLOY_FOR=$2
+            shift 2
+            ;;
         --help|-h)
             usage
             exit 0
@@ -597,81 +618,125 @@ require_command sed
 require_command sort
 require_command zip
 
-validate_manifest_ros "${ROS1_MANIFEST}" "ros1"
-validate_manifest_ros "${ROS2_MANIFEST}" "ros2"
+case "${DEPLOY_FOR}" in
+    ros1|ros2|both) ;;
+    *) die "--deploy-for must be one of: ros1, ros2, both (got '${DEPLOY_FOR}')" ;;
+esac
+
+ROS1_IN_SCOPE=0
+ROS2_IN_SCOPE=0
+[[ "${DEPLOY_FOR}" == "ros1" || "${DEPLOY_FOR}" == "both" ]] && ROS1_IN_SCOPE=1
+[[ "${DEPLOY_FOR}" == "ros2" || "${DEPLOY_FOR}" == "both" ]] && ROS2_IN_SCOPE=1
+
+if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
+    validate_manifest_ros "${ROS1_MANIFEST}" "ros1"
+fi
+if [[ ${ROS2_IN_SCOPE} -eq 1 ]]; then
+    validate_manifest_ros "${ROS2_MANIFEST}" "ros2"
+fi
 apply_manifest_author
 
-ROS1_CONFIG_DIR=$(resolve_config_dir "${ROS1_MANIFEST}" "${ROS1_CONFIG_DIR}")
-ROS2_CONFIG_DIR=$(resolve_config_dir "${ROS2_MANIFEST}" "${ROS2_CONFIG_DIR}")
-ROS1_CONFIG_VERSION=$(read_config_version "${ROS1_CONFIG_DIR}")
-ROS2_CONFIG_VERSION=$(read_config_version "${ROS2_CONFIG_DIR}")
-ROS1_VERSION=$(resolve_bundle_id "${ROS1_MANIFEST}" "${ROS1_CONFIG_DIR}" "${ROS1_VERSION}")
-ROS2_VERSION=$(resolve_bundle_id "${ROS2_MANIFEST}" "${ROS2_CONFIG_DIR}" "${ROS2_VERSION}")
+if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
+    ROS1_CONFIG_DIR=$(resolve_config_dir "${ROS1_MANIFEST}" "${ROS1_CONFIG_DIR}")
+    ROS1_CONFIG_VERSION=$(read_config_version "${ROS1_CONFIG_DIR}")
+    ROS1_VERSION=$(resolve_bundle_id "${ROS1_MANIFEST}" "${ROS1_CONFIG_DIR}" "${ROS1_VERSION}")
+fi
+if [[ ${ROS2_IN_SCOPE} -eq 1 ]]; then
+    ROS2_CONFIG_DIR=$(resolve_config_dir "${ROS2_MANIFEST}" "${ROS2_CONFIG_DIR}")
+    ROS2_CONFIG_VERSION=$(read_config_version "${ROS2_CONFIG_DIR}")
+    ROS2_VERSION=$(resolve_bundle_id "${ROS2_MANIFEST}" "${ROS2_CONFIG_DIR}" "${ROS2_VERSION}")
+fi
 BUILD_DATE="$(date -Iseconds)"
 
-[[ -n "${ROS1_VERSION}" ]] || die "Could not read ROS1 bundle id"
-[[ -n "${ROS2_VERSION}" ]] || die "Could not read ROS2 bundle id"
-validate_version "ROS1 bundle id" "${ROS1_VERSION}"
-validate_version "ROS2 bundle id" "${ROS2_VERSION}"
-validate_version "ROS1 config version" "${ROS1_CONFIG_VERSION}"
-validate_version "ROS2 config version" "${ROS2_CONFIG_VERSION}"
+if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
+    [[ -n "${ROS1_VERSION}" ]] || die "Could not read ROS1 bundle id"
+    validate_version "ROS1 bundle id" "${ROS1_VERSION}"
+    validate_version "ROS1 config version" "${ROS1_CONFIG_VERSION}"
+fi
+if [[ ${ROS2_IN_SCOPE} -eq 1 ]]; then
+    [[ -n "${ROS2_VERSION}" ]] || die "Could not read ROS2 bundle id"
+    validate_version "ROS2 bundle id" "${ROS2_VERSION}"
+    validate_version "ROS2 config version" "${ROS2_CONFIG_VERSION}"
+fi
 
 discover_templates
 
-log "ROS1 bundle id: ${ROS1_VERSION}"
-log "ROS1 config version: ${ROS1_CONFIG_VERSION}"
-log "ROS1 manifest: $(relative_path "${ROS1_MANIFEST}")"
-log "ROS2 bundle id: ${ROS2_VERSION}"
-log "ROS2 config version: ${ROS2_CONFIG_VERSION}"
-log "ROS2 manifest: $(relative_path "${ROS2_MANIFEST}")"
+log "Deploy target: ${DEPLOY_FOR}"
+if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
+    log "ROS1 bundle id: ${ROS1_VERSION}"
+    log "ROS1 config version: ${ROS1_CONFIG_VERSION}"
+    log "ROS1 manifest: $(relative_path "${ROS1_MANIFEST}")"
+    log "ROS1 x86 template: ${ROS1_X86_TEMPLATE}"
+    log "ROS1 arm64 template: ${ROS1_ARM64_TEMPLATE}"
+fi
+if [[ ${ROS2_IN_SCOPE} -eq 1 ]]; then
+    log "ROS2 bundle id: ${ROS2_VERSION}"
+    log "ROS2 config version: ${ROS2_CONFIG_VERSION}"
+    log "ROS2 manifest: $(relative_path "${ROS2_MANIFEST}")"
+    log "ROS2 x86 template: ${ROS2_X86_TEMPLATE}"
+    log "ROS2 arm64 template: ${ROS2_ARM64_TEMPLATE}"
+fi
 log "Release author: ${RELEASE_AUTHOR}"
 log "Build date: ${BUILD_DATE}"
-log "ROS1 x86 template: ${ROS1_X86_TEMPLATE}"
-log "ROS1 arm64 template: ${ROS1_ARM64_TEMPLATE}"
-log "ROS2 x86 template: ${ROS2_X86_TEMPLATE}"
-log "ROS2 arm64 template: ${ROS2_ARM64_TEMPLATE}"
+
+# Normalize DIST_DIR/WORK_DIR to absolute paths. The zip step cd's into
+# WORK_DIR before writing output_zip, so a relative DIST_DIR (e.g. "dist")
+# would resolve against the wrong directory and fail with "Could not create
+# output file".
+case "${DIST_DIR}" in
+    /*) ;;
+    *) DIST_DIR="${PWD}/${DIST_DIR}" ;;
+esac
+case "${WORK_DIR}" in
+    /*) ;;
+    *) WORK_DIR="${PWD}/${WORK_DIR}" ;;
+esac
 
 mkdir -p "${DIST_DIR}" "${WORK_DIR}"
 
-build_package \
-    "ros1" "x86" "${ROS1_VERSION}" "${ROS1_CONFIG_VERSION}" "${ROS1_X86_TEMPLATE}" "${ROS1_CONFIG_DIR}" "${ROS1_MANIFEST}" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "rns")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "backend")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "frontend")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "backend_worker")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "redis")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "rabbitmq")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "mongo")"
+if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
+    build_package \
+        "ros1" "x86" "${ROS1_VERSION}" "${ROS1_CONFIG_VERSION}" "${ROS1_X86_TEMPLATE}" "${ROS1_CONFIG_DIR}" "${ROS1_MANIFEST}" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "rns")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "backend")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "frontend")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "backend_worker")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "redis")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "rabbitmq")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "x86" "mongo")"
 
-build_package \
-    "ros1" "arm64" "${ROS1_VERSION}" "${ROS1_CONFIG_VERSION}" "${ROS1_ARM64_TEMPLATE}" "${ROS1_CONFIG_DIR}" "${ROS1_MANIFEST}" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "rns")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "backend")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "frontend")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "backend_worker")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "redis")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "rabbitmq")" \
-    "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "mongo")"
+    build_package \
+        "ros1" "arm64" "${ROS1_VERSION}" "${ROS1_CONFIG_VERSION}" "${ROS1_ARM64_TEMPLATE}" "${ROS1_CONFIG_DIR}" "${ROS1_MANIFEST}" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "rns")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "backend")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "frontend")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "backend_worker")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "redis")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "rabbitmq")" \
+        "$(manifest_get_image "${ROS1_MANIFEST}" "arm64" "mongo")"
+fi
 
-build_package \
-    "ros2" "x86" "${ROS2_VERSION}" "${ROS2_CONFIG_VERSION}" "${ROS2_X86_TEMPLATE}" "${ROS2_CONFIG_DIR}" "${ROS2_MANIFEST}" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "rns")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "backend")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "frontend")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "backend_worker")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "redis")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "rabbitmq")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "mongo")"
+if [[ ${ROS2_IN_SCOPE} -eq 1 ]]; then
+    build_package \
+        "ros2" "x86" "${ROS2_VERSION}" "${ROS2_CONFIG_VERSION}" "${ROS2_X86_TEMPLATE}" "${ROS2_CONFIG_DIR}" "${ROS2_MANIFEST}" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "rns")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "backend")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "frontend")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "backend_worker")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "redis")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "rabbitmq")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "x86" "mongo")"
 
-build_package \
-    "ros2" "arm64" "${ROS2_VERSION}" "${ROS2_CONFIG_VERSION}" "${ROS2_ARM64_TEMPLATE}" "${ROS2_CONFIG_DIR}" "${ROS2_MANIFEST}" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "rns")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "backend")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "frontend")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "backend_worker")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "redis")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "rabbitmq")" \
-    "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "mongo")"
+    build_package \
+        "ros2" "arm64" "${ROS2_VERSION}" "${ROS2_CONFIG_VERSION}" "${ROS2_ARM64_TEMPLATE}" "${ROS2_CONFIG_DIR}" "${ROS2_MANIFEST}" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "rns")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "backend")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "frontend")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "backend_worker")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "redis")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "rabbitmq")" \
+        "$(manifest_get_image "${ROS2_MANIFEST}" "arm64" "mongo")"
+fi
 
 write_manifest
 
