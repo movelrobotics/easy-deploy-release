@@ -138,7 +138,9 @@ default-context: &default-context
 master-branch: &master-branch
   filters:
     branches:
-      only: master
+      only:
+        - master
+        - circleci-project-setup  # TEMP(test): testing ros2 publish fix
 
 executors:
   cimg-base:
@@ -198,9 +200,11 @@ jobs:
           command: |
             rm -f dist/*.zip
             echo "Cleaned dist/*.zip"
-      - notify:
-          when: "failure"
-          webhook: ${GOOGLE_CHAT_WEBHOOK}
+      # TEMP(test): Google Chat notifications disabled to avoid disturbing the
+      # team while testing. Re-enable before final merge to master.
+      # - notify:
+      #     when: "failure"
+      #     webhook: ${GOOGLE_CHAT_WEBHOOK}
 
   notify-pipeline-success:
     executor: docker-alpine
@@ -223,8 +227,10 @@ workflows:
       - build_and_release:
           <<: *default-context
           <<: *master-branch
-      - notify-pipeline-success:
-          <<: *default-context
-          <<: *master-branch
-          requires:
-            - build_and_release
+      # TEMP(test): Google Chat success notification disabled while testing.
+      # Re-enable before final merge to master.
+      # - notify-pipeline-success:
+      #     <<: *default-context
+      #     <<: *master-branch
+      #     requires:
+      #       - build_and_release

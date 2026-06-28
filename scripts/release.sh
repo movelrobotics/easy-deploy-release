@@ -176,10 +176,22 @@ render_manifest() {
     } > "${out_file}"
 }
 
+read_config_version() {
+    # read_config_version <config_dir> -> Version: value from seirios_config_release.yml
+    local config_dir=$1
+    local release_file="${config_dir}/seirios_config_release.yml"
+    [[ -f "${release_file}" ]] || { printf 'unknown'; return; }
+    sed -nE 's/^Version:[[:space:]]*//p' "${release_file}" \
+        | head -n 1 \
+        | sed -E "s/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//; s/^\"//; s/\"$//; s/^'//; s/'$//"
+}
+
 upload_release() {
-    # upload_release <ros> <bundle_id>
+    # upload_release <ros> <bundle_id> <config_ref> <config_version>
     local ros=$1
     local bundle_id=$2
+    local config_ref=$3
+    local config_version=$4
     local tag="${ros}-${bundle_id}"
     local zip_x86="${DIST_DIR}/easy-deploy-${ros}-${bundle_id}-x86.zip"
     local zip_arm64="${DIST_DIR}/easy-deploy-${ros}-${bundle_id}-arm64.zip"
@@ -191,17 +203,53 @@ upload_release() {
     export GH_TOKEN="${GITHUB_TOKEN:?GITHUB_TOKEN is required for upload}"
 
     local title="Easy Deploy ${ros} ${bundle_id}"
+    local generated_at
+    generated_at="$(date -Iseconds)"
+    # Multi-line release notes: includes version, config ref/version, and assets
+    # (not only a timestamp, so the published release is self-describing).
+    local notes
+    notes="$(printf '%s\n' \
+        "**${ros}** Easy Deploy bundle **${bundle_id}**" \
+        "" \
+        "| Field | Value |" \
+        "| --- | --- |" \
+        "| ROS line | ${ros} |" \
+        "| Bundle version | ${bundle_id} |" \
+        "| Config repo ref | ${config_ref} |" \
+        "| Config version | ${config_version} |" \
+        "| Author | ${AUTHOR} |" \
+        "| Generated | ${generated_at} |" \
+        "" \
+        "**Assets:**" \
+        "- \`${zip_x86##*/}\`" \
+        "- \`${zip_arm64##*/}\`")"
+
     if gh release view "${tag}" --repo "${RELEASE_REPO}" >/dev/null 2>&1; then
         log "Release ${tag} exists; uploading assets (--clobber)"
         gh release upload "${tag}" "${zip_x86}" "${zip_arm64}" \
             --repo "${RELEASE_REPO}" --clobber
+        # Refresh notes on re-publish so they reflect the latest version info.
+        gh release edit "${tag}" --repo "${RELEASE_REPO}" \
+            --notes "${notes}" --title "${title}" >/dev/null
     else
         log "Creating release ${tag}"
         gh release create "${tag}" "${zip_x86}" "${zip_arm64}" \
             --repo "${RELEASE_REPO}" \
             --title "${title}" \
-            --notes "Easy Deploy ${ros} ${bundle_id} (generated $(date -Iseconds))."
+            --notes "${notes}"
     fi
+
+    # Verify both assets actually landed on the release; fail loudly on a
+    # partial publish rather than silently reporting success.
+    local remote_assets
+    remote_assets=$(gh release view "${tag}" --repo "${RELEASE_REPO}" --json assets \
+        --jq '.assets[].name' 2>/dev/null || printf '')
+    local want
+    for want in "${zip_x86##*/}" "${zip_arm64##*/}"; do
+        if ! grep -qx "${want}" <<<"${remote_assets}"; then
+            die "Upload verification failed: '${want}' not found on release ${tag}"
+        fi
+    done
     log "Uploaded ${zip_x86##*/}, ${zip_arm64##*/} -> ${RELEASE_REPO}@${tag}"
 }
 
@@ -288,6 +336,8 @@ if [[ ${BUILD_ROS1} -eq 1 ]]; then
 
     ROS1_MANIFEST="${RENDER_DIR}/ros1-release.yaml"
     render_manifest "ros1" "${ROS1_BUNDLE}" "${AUTHOR}" "${ROS1_MANIFEST}"
+    ROS1_CONFIG_VERSION=$(read_config_version "${ROS1_CONFIG_DIR}")
+    log "ROS1 config version: ${ROS1_CONFIG_VERSION}"
     BUILDER_ARGS+=(
         --ros1-manifest "${ROS1_MANIFEST}"
         --ros1-config-dir "${ROS1_CONFIG_DIR}"
@@ -310,6 +360,8 @@ if [[ ${BUILD_ROS2} -eq 1 ]]; then
 
     ROS2_MANIFEST="${RENDER_DIR}/ros2-release.yaml"
     render_manifest "ros2" "${ROS2_BUNDLE}" "${AUTHOR}" "${ROS2_MANIFEST}"
+    ROS2_CONFIG_VERSION=$(read_config_version "${ROS2_CONFIG_DIR}")
+    log "ROS2 config version: ${ROS2_CONFIG_VERSION}"
     BUILDER_ARGS+=(
         --ros2-manifest "${ROS2_MANIFEST}"
         --ros2-config-dir "${ROS2_CONFIG_DIR}"
@@ -326,10 +378,10 @@ if [[ ${NO_UPLOAD} -eq 1 ]]; then
 fi
 
 if [[ ${BUILD_ROS1} -eq 1 ]]; then
-    upload_release "ros1" "${ROS1_BUNDLE}"
+    upload_release "ros1" "${ROS1_BUNDLE}" "${ROS1_CONFIG_REF}" "${ROS1_CONFIG_VERSION}"
 fi
 if [[ ${BUILD_ROS2} -eq 1 ]]; then
-    upload_release "ros2" "${ROS2_BUNDLE}"
+    upload_release "ros2" "${ROS2_BUNDLE}" "${ROS2_CONFIG_REF}" "${ROS2_CONFIG_VERSION}"
 fi
 
 log "Done. Release(s) published to ${RELEASE_REPO}."
