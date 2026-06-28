@@ -20,6 +20,7 @@ To cut a release, edit `release-config.yml` and push to `master`.
 
 ## Documentation
 
+- **CI/CD workflow (with diagram): [docs/CI_WORKFLOW.md](docs/CI_WORKFLOW.md)**
 - Internal release guide: [README_INTERNAL.md](README_INTERNAL.md)
 - Client installation guide: [README_CLIENT.md](README_CLIENT.md)
 - Release source of truth: [release-config.yml](release-config.yml)
