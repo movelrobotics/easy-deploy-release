@@ -130,10 +130,12 @@ commands:
                     "<< parameters.webhook >>"
 
 # Macros
-default-context: &default-context
-  context:
-    - movelai-global
-    - movelai-ros
+# TEMP(Stage 2 test): contexts removed to bypass "Unauthorized" while the
+# movelai-global/movelai-ros contexts are set up for this project.
+# Either create those contexts, OR add these as project-level env vars in
+# CircleCI: GITHUB_USER, GITHUB_TOKEN, GOOGLE_CHAT_WEBHOOK,
+# GOOGLE_CHAT_MSG_WEBHOOK, CIRCLE_TOKEN.
+default-context: &default-context {}
 
 master-branch: &master-branch
   filters:
