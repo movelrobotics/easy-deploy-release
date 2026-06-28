@@ -130,12 +130,10 @@ commands:
                     "<< parameters.webhook >>"
 
 # Macros
-# TEMP(Stage 2 test): contexts removed to bypass "Unauthorized" while the
-# movelai-global/movelai-ros contexts are set up for this project.
-# Either create those contexts, OR add these as project-level env vars in
-# CircleCI: GITHUB_USER, GITHUB_TOKEN, GOOGLE_CHAT_WEBHOOK,
-# GOOGLE_CHAT_MSG_WEBHOOK, CIRCLE_TOKEN.
-default-context: &default-context {}
+default-context: &default-context
+  context:
+    - movelai-global
+    - movelai-ros
 
 master-branch: &master-branch
   filters:
@@ -164,11 +162,23 @@ jobs:
           command: |
             sudo apt-get update
             sudo apt-get install -y zip
-            # cimg/base ships git, curl, jq, and the GitHub CLI (gh).
             command -v git >/dev/null || sudo apt-get install -y git
             command -v curl >/dev/null || sudo apt-get install -y curl
             command -v jq >/dev/null || sudo apt-get install -y jq
-            command -v gh >/dev/null || { echo "GitHub CLI (gh) missing; cannot upload releases"; exit 1; }
+            # cimg/base does not ship the GitHub CLI; install from the official deb repo.
+            if ! command -v gh >/dev/null 2>&1; then
+              (
+                curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+                  | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+                sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+                echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+                  | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+                sudo apt-get update
+                sudo apt-get install -y gh
+              )
+              command -v gh >/dev/null || { echo "GitHub CLI (gh) install failed"; exit 1; }
+            fi
+            gh --version
       - run:
           name: Build and publish Easy Deploy release
           command: |
