@@ -186,6 +186,21 @@ read_config_version() {
         | sed -E "s/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//; s/^\"//; s/\"$//; s/^'//; s/'$//"
 }
 
+format_images() {
+    # format_images <ros> -> markdown list of x86 and arm64 images from release-config.yml
+    local ros=$1
+    local arch key val
+    local img_keys=(rns backend frontend backend_worker redis rabbitmq mongo)
+    for arch in x86 arm64; do
+        printf '**Images (%s):**\n' "${arch}"
+        for key in "${img_keys[@]}"; do
+            val=$(yq_read ".${ros}.${arch}.${key}")
+            printf -- '- %s: `%s`\n' "${key}" "${val}"
+        done
+        printf '\n'
+    done
+}
+
 upload_release() {
     # upload_release <ros> <bundle_id> <config_ref> <config_version>
     local ros=$1
@@ -205,8 +220,9 @@ upload_release() {
     local title="Easy Deploy ${ros} ${bundle_id}"
     local generated_at
     generated_at="$(date -Iseconds)"
-    # Multi-line release notes: includes version, config ref/version, and assets
-    # (not only a timestamp, so the published release is self-describing).
+    # Multi-line release notes: includes version, config ref/version, the full
+    # image list per arch, and assets (not only a timestamp, so the published
+    # release is self-describing).
     local notes
     notes="$(printf '%s\n' \
         "**${ros}** Easy Deploy bundle **${bundle_id}**" \
@@ -218,11 +234,14 @@ upload_release() {
         "| Config repo ref | ${config_ref} |" \
         "| Config version | ${config_version} |" \
         "| Author | ${AUTHOR} |" \
-        "| Generated | ${generated_at} |" \
-        "" \
-        "**Assets:**" \
-        "- \`${zip_x86##*/}\`" \
-        "- \`${zip_arm64##*/}\`")"
+        "| Generated | ${generated_at} |")"
+    notes="${notes}
+
+$(format_images "${ros}")
+
+**Assets:**
+- \`${zip_x86##*/}\`
+- \`${zip_arm64##*/}\`"
 
     if gh release view "${tag}" --repo "${RELEASE_REPO}" >/dev/null 2>&1; then
         log "Release ${tag} exists; uploading assets (--clobber)"
@@ -383,5 +402,13 @@ fi
 if [[ ${BUILD_ROS2} -eq 1 ]]; then
     upload_release "ros2" "${ROS2_BUNDLE}" "${ROS2_CONFIG_REF}" "${ROS2_CONFIG_VERSION}"
 fi
+
+# Print a summary with direct URLs to every published release so there is no
+# ambiguity about what landed on GitHub (the sidebar only shows "Latest").
+log "Published releases:"
+{
+    [[ ${BUILD_ROS1} -eq 1 ]] && gh release view "ros1-${ROS1_BUNDLE}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null
+    [[ ${BUILD_ROS2} -eq 1 ]] && gh release view "ros2-${ROS2_BUNDLE}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null
+} | sed 's#^#  - #'
 
 log "Done. Release(s) published to ${RELEASE_REPO}."
