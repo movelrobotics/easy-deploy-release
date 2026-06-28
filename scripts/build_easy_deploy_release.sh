@@ -679,6 +679,19 @@ fi
 log "Release author: ${RELEASE_AUTHOR}"
 log "Build date: ${BUILD_DATE}"
 
+# Normalize DIST_DIR/WORK_DIR to absolute paths. The zip step cd's into
+# WORK_DIR before writing output_zip, so a relative DIST_DIR (e.g. "dist")
+# would resolve against the wrong directory and fail with "Could not create
+# output file".
+case "${DIST_DIR}" in
+    /*) ;;
+    *) DIST_DIR="${PWD}/${DIST_DIR}" ;;
+esac
+case "${WORK_DIR}" in
+    /*) ;;
+    *) WORK_DIR="${PWD}/${WORK_DIR}" ;;
+esac
+
 mkdir -p "${DIST_DIR}" "${WORK_DIR}"
 
 if [[ ${ROS1_IN_SCOPE} -eq 1 ]]; then
