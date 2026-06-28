@@ -75,16 +75,28 @@ require_command() {
 # Resolve a usable yq (mikefarah/yq v4). Prefer system yq; otherwise download a
 # static binary into the work dir and cache it.
 ensure_yq() {
-    if command -v yq >/dev/null 2>&1 && yq eval 'null' --null-input >/dev/null 2>&1; then
-        YQ="yq"
-        return 0
-    fi
-
+    # A yq is "good enough" if it can eval against real input the way yq_read
+    # uses it (no -r shorthand, since some shipped builds reject it). Guard each
+    # probe with command -v / -x BEFORE invoking yq so a missing binary does not
+    # trip `set -e`/pipefail.
     local bin_dir="${RELEASE_WORK}/.bin"
     local yq_bin="${bin_dir}/yq"
-    if [[ -x "${yq_bin}" ]] && "${yq_bin}" eval 'null' --null-input >/dev/null 2>&1; then
-        YQ="${yq_bin}"
-        return 0
+    local probe
+
+    if command -v yq >/dev/null 2>&1; then
+        probe=$(printf 'a: ok\n' | yq eval '.a' - 2>/dev/null || true)
+        if [[ "${probe}" == "ok" ]]; then
+            YQ="yq"
+            return 0
+        fi
+    fi
+
+    if [[ -x "${yq_bin}" ]]; then
+        probe=$(printf 'a: ok\n' | "${yq_bin}" eval '.a' - 2>/dev/null || true)
+        if [[ "${probe}" == "ok" ]]; then
+            YQ="${yq_bin}"
+            return 0
+        fi
     fi
 
     require_command curl
@@ -105,7 +117,9 @@ ensure_yq() {
 
 yq_read() {
     # yq_read <path>  -> prints value, empty string if missing
-    "${YQ}" eval -r "${1} // \"\"" "${CONFIG_FILE}"
+    # NOTE: no -r flag. unwrapScalar defaults to true so scalars are unquoted,
+    # and some shipped yq builds do not support the -r shorthand.
+    "${YQ}" eval "${1} // \"\"" "${CONFIG_FILE}"
 }
 
 clone_url() {
