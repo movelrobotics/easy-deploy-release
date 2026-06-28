@@ -1,0 +1,55 @@
+# Easy Deploy Release — single source of truth.
+#
+# When this file is present, scripts/release.sh uses it to render the per-ros
+# manifests and clone the config repos at the configured branch/tag. When this
+# file is absent, the legacy path is used: manifests/*.yaml + a pre-existing
+# config directory, exactly as build_easy_deploy_release.sh works today.
+#
+# deploy_for:  ros1 | ros2 | both     which ros line(s) to build + publish
+# author:                          release author (also written to release_info.json)
+# <ros>.config: branch or tag in the matching config repo
+# <ros>.version: raw version; the bundle id becomes bundle-<version>
+# <ros>.(x86|arm64).*: docker image refs, each MUST include a tag
+
+deploy_for: both
+author: Movel Robotics
+
+ros1:
+  config: release/2.73.0
+  version: 1.0.1
+  x86:
+    rns: movelrobots/rns-ros:2.73.0
+    backend: movelrobots/rns-backend:4.39.0-alpha
+    frontend: movelrobots/rns-frontend:4.39.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
+  arm64:
+    rns: movelrobots/rns-ros:2.73.0
+    backend: movelrobots/rns-backend:arm64-4.39.0-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.39.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
+
+ros2:
+  config: release/5.3.0
+  version: 1.0.1
+  x86:
+    rns: movelrobots/rns-ros2:5.3.9
+    backend: movelrobots/rns-backend:4.39.0-alpha
+    frontend: movelrobots/rns-frontend:4.39.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
+  arm64:
+    rns: movelrobots/rns-ros2:5.3.9
+    backend: movelrobots/rns-backend:arm64-4.39.0-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.39.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
