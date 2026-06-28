@@ -15,40 +15,40 @@ deploy_for: both
 author: Movel Robotics
 
 ros1:
-  config: release/2.73.0
-  version: 1.0.1
+  config: master
+  version: 1.1.0
   x86:
-    rns: movelrobots/rns-ros:2.73.0
-    backend: movelrobots/rns-backend:4.39.0-alpha
-    frontend: movelrobots/rns-frontend:4.39.0-alpha
+    rns: movelrobots/rns-ros:2.73.6
+    backend: movelrobots/rns-backend:4.41.0-alpha
+    frontend: movelrobots/rns-frontend:4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
     redis: library/redis:6.2.0
     rabbitmq: library/rabbitmq:3.8.12-management
     mongo: library/mongo:4.4.4
   arm64:
-    rns: movelrobots/rns-ros:2.73.0
-    backend: movelrobots/rns-backend:arm64-4.39.0-alpha
-    frontend: movelrobots/rns-frontend:arm64-4.39.0-alpha
+    rns: movelrobots/rns-ros:2.73.6
+    backend: movelrobots/rns-backend:arm64-4.41.0-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
     redis: library/redis:6.2.0
     rabbitmq: library/rabbitmq:3.8.12-management
     mongo: library/mongo:4.4.4
 
 ros2:
-  config: release/5.3.0
-  version: 1.0.1
+  config: master
+  version: 1.1.0
   x86:
-    rns: movelrobots/rns-ros2:5.3.9
-    backend: movelrobots/rns-backend:4.39.0-alpha
-    frontend: movelrobots/rns-frontend:4.39.0-alpha
+    rns: movelrobots/rns-ros2:5.3.15
+    backend: movelrobots/rns-backend:4.41.0-alpha
+    frontend: movelrobots/rns-frontend:4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
     redis: library/redis:6.2.0
     rabbitmq: library/rabbitmq:3.8.12-management
     mongo: library/mongo:4.4.4
   arm64:
-    rns: movelrobots/rns-ros2:5.3.9
-    backend: movelrobots/rns-backend:arm64-4.39.0-alpha
-    frontend: movelrobots/rns-frontend:arm64-4.39.0-alpha
+    rns: movelrobots/rns-ros2:5.3.15
+    backend: movelrobots/rns-backend:arm64-4.41.0-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
     redis: library/redis:6.2.0
     rabbitmq: library/rabbitmq:3.8.12-management
