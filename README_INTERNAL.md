@@ -10,11 +10,25 @@ movelrobotics/easy-deploy-release
 
 ## Quick Start
 
-Prepare the latest config folders and update the release manifests:
+Releases are driven by the single source of truth [release-config.yml](release-config.yml),
+which declares the deploy scope, config repo refs, bundle version, and all image tags.
+Edit that file, then either:
+
+- push to `master` to let CircleCI build and publish automatically, or
+- run the orchestrator locally:
+
+```bash
+bash scripts/release.sh --no-upload
+```
+
+The orchestrator clones the config repos at the configured ref, renders the per-ROS
+manifests, runs the builder, and (unless `--no-upload` is set) uploads the zips to
+GitHub Releases.
+
+If `release-config.yml` is absent, the orchestrator falls back to the legacy manual
+flow using `manifests/*.yaml` and a pre-existing local config directory:
 
 ```text
-rns-config-release-<ros1-config-version>/
-rns-config2-release-<ros2-config-version>/
 manifests/ros1-release.yaml
 manifests/ros2-release.yaml
 templates/ros1/x86/easy-deploy/
@@ -25,7 +39,7 @@ templates/ros2/arm64/easy-deploy/
 
 templates can also using fallback from google drive, only download the zip and extract to local
 
-Build all packages:
+Build all packages (legacy path):
 
 ```bash
 bash scripts/build_easy_deploy_release.sh
@@ -208,6 +222,84 @@ rns-config2-release-5.3.0/seirios_config_release.yml
 
 The bundle id is not read from the config folder. The bundle id is read from the release manifest.
 
+When using the automated path, `scripts/release.sh` clones the config repos at the ref
+configured in `release-config.yml` (see below), so no manual download is required.
+
+## Automated Release (release-config.yml)
+
+`release-config.yml` is the single source of truth for an automated release. It overrides
+the hand-maintained `manifests/*.yaml` when present. When it is absent, the legacy manual
+flow (manifests + a pre-existing local config directory) is used unchanged.
+
+```yaml
+deploy_for: both          # ros1 | ros2 | both
+author: Movel Robotics
+
+ros1:
+  config: release/2.73.0   # branch or tag in movelrobotics/rns-config
+  version: 1.0.1           # raw version; bundle id becomes bundle-1.0.1
+  x86:
+    rns: movelrobots/rns-ros:2.73.0
+    backend: movelrobots/rns-backend:4.39.0-alpha
+    ...
+  arm64:
+    rns: movelrobots/rns-ros:2.73.0
+    backend: movelrobots/rns-backend:arm64-4.39.0-alpha
+    ...
+
+ros2:
+  config: release/5.3.0   # branch or tag in movelrobotics/rns-config2
+  version: 1.0.1
+  x86: { ...same keys... }
+  arm64: { ...same keys... }
+```
+
+Field reference:
+
+```text
+deploy_for          Which ROS line(s) to build and publish: ros1, ros2, or both.
+author              Release author written to release_info.json.
+<ros>.config        Branch or tag to clone from the matching config repo.
+<ros>.version       Raw version; the bundle id is bundle-<version>.
+<ros>.(x86|arm64).* Docker image refs, each MUST include a tag.
+```
+
+The `ros` token (`ros1`/`ros2`) drives the package filename
+(`easy-deploy-<ros>-<bundle-id>-<arch>.zip`) and the release tag (`<ros>-<bundle-id>`),
+as well as the internal service/repo logic.
+
+`scripts/release.sh` is the orchestrator:
+
+```bash
+# Build only, no upload (local dry-run)
+bash scripts/release.sh --no-upload
+
+# Override the scope regardless of release-config.yml
+bash scripts/release.sh --deploy-for ros1 --no-upload
+
+# Full release (clone configs, build, and upload to GitHub Releases)
+bash scripts/release.sh
+```
+
+Flags: `--deploy-for {ros1,ros2,both}`, `--no-upload`, `--keep-config`,
+`--dist-dir DIR`. The orchestrator auto-installs `yq` if it is missing.
+
+Authentication: `GITHUB_USER`/`GITHUB_TOKEN` are used to clone the private config repos
+and (as `GH_TOKEN`) to publish via the GitHub CLI. These are already configured in the
+CircleCI `movelai-global`/`movelai-ros` contexts.
+
+## CI Pipeline
+
+The CircleCI workflow in `.circleci/config.yml` auto-runs on push to `master` only (no
+approval gate):
+
+1. Installs build tools and runs `scripts/release.sh`.
+2. Builds the in-scope packages and writes `dist/manifest.json`.
+3. Uploads the zips to GitHub Releases under `ros1-<bundle-id>` / `ros2-<bundle-id>`.
+4. Sends Google Chat notifications (running/success/failure).
+
+To cut a release, edit `release-config.yml` and push to `master`.
+
 ## Manifest YAML
 
 The release manifest is the internal source of truth for a bundle.
@@ -327,6 +419,13 @@ bash scripts/build_easy_deploy_release.sh \
   --ros2-version bundle-1.0.1
 ```
 
+Build only one ROS line (skips reading/building the other):
+
+```bash
+bash scripts/build_easy_deploy_release.sh --deploy-for ros1
+# ros1 | ros2 | both (default: both)
+```
+
 ## Build Behavior
 
 For each package, the builder:
@@ -383,14 +482,14 @@ The `release_info.json` file contains bundle metadata, including all image versi
 
 Before publishing a release:
 
-- Download and extract the latest config release.
-- Update `manifests/ros1-release.yaml` and/or `manifests/ros2-release.yaml`.
-- Confirm the config `seirios_config_release.yml` contains the intended `Version:`.
-- Confirm every Docker image tag in the manifest exists.
-- Run the builder.
+- Update `release-config.yml` (deploy scope, config refs, version, image tags).
+  - For the legacy manual path instead: update `manifests/ros1-release.yaml` and/or `manifests/ros2-release.yaml` and provide a local config directory.
+- Confirm the config `seirios_config_release.yml` (at the configured ref) contains the intended `Version:`.
+- Confirm every Docker image tag in `release-config.yml` exists.
+- Run `bash scripts/release.sh --no-upload` (or push to `master` for the CI path).
 - Check `dist/manifest.json`.
 - Check one package's `release_info.json`.
-- Upload the correct assets to GitHub Releases.
+- Upload the correct assets to GitHub Releases (`release.sh` does this automatically without `--no-upload`).
 - Test the client installer with `--no-install` first.
 
 Example test:
