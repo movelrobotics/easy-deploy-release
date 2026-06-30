@@ -35,7 +35,7 @@ ros1:
     mongo: library/mongo:4.4.4
 
 ros2:
-  config: jazzy/v5.3.0
+  config: feat/new-release-5.3.15-jazzy
   version: 5.3.15-jazzy
   x86:
     rns: movelrobots/rns-ros2:5.3.15-jazzy
