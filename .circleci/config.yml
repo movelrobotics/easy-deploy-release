@@ -141,6 +141,7 @@ master-branch: &master-branch
       only:
         - master
         - circleci-project-setup  # kept enabled for release testing
+        - movelrobotics-easy-deploy  # test branch for the website-publish flow
 
 executors:
   cimg-base:
@@ -219,14 +220,40 @@ jobs:
           message: "Easy Deploy release pipeline finished successfully for branch ${CIRCLE_BRANCH}."
           webhook: ${GOOGLE_CHAT_MSG_WEBHOOK}
 
+  publish-to-website:
+    executor: docker-alpine
+    resource_class: small
+    steps:
+      - run:
+          name: Install tools
+          command: |
+            apk add --no-cache curl jq git bash
+      - checkout
+      - run:
+          name: Publish download entries to website
+          # Publishes one entry per ros line in scope (deploy_for) to the
+          # internal downloads API. Reads slug/name/etc from release-config.yml
+          # and derives repo + releasePath from the release tag.
+          command: |
+            bash scripts/publish_downloads.sh
+      - notify:
+          when: "failure"
+          webhook: ${GOOGLE_CHAT_WEBHOOK}
+
 workflows:
   easy_deploy_release:
     jobs:
       - build_and_release:
           <<: *default-context
           <<: *master-branch
+      - publish-to-website:
+          <<: *default-context
+          <<: *master-branch
+          requires:
+            - build_and_release
       - notify-pipeline-success:
           <<: *default-context
           <<: *master-branch
           requires:
             - build_and_release
+            - publish-to-website

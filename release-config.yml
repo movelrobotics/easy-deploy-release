@@ -10,6 +10,10 @@
 # <ros>.config: branch or tag in the matching config repo
 # <ros>.version: raw version; the bundle id becomes bundle-<version>
 # <ros>.(x86|arm64).*: docker image refs, each MUST include a tag
+# <ros>.download.*: metadata published to the downloads API by
+#                    scripts/publish_downloads.sh (slug/name/category/latestVersion/
+#                    description/highlights). repo and releasePath are derived:
+#                    repo = easy-deploy-release, releasePath = /releases/tag/<ros>-bundle-<version>.
 
 deploy_for: ros2
 author: Movel Robotics
@@ -17,6 +21,13 @@ author: Movel Robotics
 ros1:
   config: master
   version: 1.1.0
+  download:
+    slug: rns-ros-easy-deploy
+    name: RNS ROS Easy Deploy
+    category: RNS
+    latestVersion: "1.1.0"
+    description: RNS ROS Easy Deploy for ROS1
+    highlights: []
   x86:
     rns: movelrobots/rns-ros:2.73.6
     backend: movelrobots/rns-backend:4.41.0-alpha
@@ -37,6 +48,14 @@ ros1:
 ros2:
   config: feat/new_release_jazzy_5.3.0
   version: 5.3.15-jazzy
+  download:
+    slug: rns-easy-deploy-jazzy
+    name: RNS Easy Deploy Jazzy
+    category: RNS
+    latestVersion: "ROS2 Jazzy"
+    description: RNS Easy Deploy for ROS2 Jazzy
+    highlights:
+      - ROS2 Jazzy support
   x86:
     rns: movelrobots/rns-ros2:5.3.15-jazzy
     backend: movelrobots/rns-backend:4.41.0-alpha
