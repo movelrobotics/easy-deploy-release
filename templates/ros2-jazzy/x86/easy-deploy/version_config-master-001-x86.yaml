@@ -1,0 +1,30 @@
+version:
+  - master-002
+  - host-ubuntu.v22.04
+  - x86
+
+seirios:
+  seirios-ros2:
+    tag: movelrobots/rns-ros2:5.3.15-jazzy
+    registry: dockerhub
+  seirios-backend:
+    tag: movelrobots/rns-backend:4.41.0-alpha
+    registry: dockerhub
+  seirios-frontend:
+    tag: movelrobots/rns-frontend:4.41.0-alpha
+    registry: dockerhub
+  seirios-backend-worker:
+    tag: movelrobots/rns-backend-worker:3.3.0
+    registry: dockerhub
+  redis:
+    tag: library/redis:6.2.0
+    registry: dockerhub
+  rabbitmq:
+    tag: library/rabbitmq:3.8.12-management
+    registry: dockerhub
+  mongo:
+    tag: library/mongo:4.4.4
+    registry: dockerhub
+
+registry:
+  dockerhub: docker.io

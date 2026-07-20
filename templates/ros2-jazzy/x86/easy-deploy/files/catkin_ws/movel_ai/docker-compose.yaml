@@ -1,0 +1,121 @@
+version: "3.3"
+
+volumes:
+  movelweb:
+  rabbitmq_data:
+
+services:
+  seirios-mongo:
+    image: library/mongo:4.4.4
+    container_name: seirios-mongo
+    restart: always
+    network_mode: host
+    volumes:
+      - movelweb:/data/db
+  seirios-rabbitmq:
+    image: library/rabbitmq:3.8.12-management
+    container_name: seirios-rabbitmq
+    restart: always
+    network_mode: host
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - /home/$USER/catkin_ws/movel_ai/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  seirios-redis:
+    image: library/redis:6.2.0
+    container_name: seirios-redis
+    restart: always
+    network_mode: host
+    command: bash -c "redis-server --notify-keyspace-events KEA"
+  seirios-frontend:
+    image: movelrobots/rns-frontend:4.41.0-alpha
+    container_name: seirios-frontend
+    restart: always
+    network_mode: host
+    depends_on:
+      - seirios-backend
+    environment:
+      CUSTOM_MESSAGE: "false"
+      ROS2: "true"
+    volumes:
+      - /home/$USER/catkin_ws/movel_ai/Downloads/:/home/movel/Downloads/:rw
+  seirios-backend:
+    image: movelrobots/rns-backend:4.41.0-alpha
+    container_name: seirios-backend
+    restart: always
+    network_mode: host
+    volumes:
+      - /var/hasplm:/var/hasplm:rw
+      - /etc/hasplm:/etc/hasplm:rw
+      - /home/$USER/catkin_ws/movel_ai/maps:/home/movel/maps:rw
+      - /home/$USER/catkin_ws/movel_ai/paths:/home/movel/paths:rw
+      - /home/$USER/catkin_ws/movel_ai/maps/nav:/home/movel/navigation:rw
+      - /home/$USER/catkin_ws/movel_ai/Downloads/export:/home/movel/Downloads/export:rw
+      - /home/$USER/catkin_ws/movel_ai/Downloads/import:/home/movel/Downloads/import:rw
+      - /home/$USER/catkin_ws/movel_ai/Downloads/:/home/movel/Downloads/:rw
+    depends_on:
+      - seirios-mongo
+      - seirios-rabbitmq
+    environment:
+      ROS_HOST: "localhost"
+      ROS_PORT: 9091
+      ROS2: "true"
+      NODE_CONFIG: '{"topics":[]}'
+      # CUSTOM_MESSAGE: "/custom_msg_test"
+  seirios-backend-worker:
+    image: movelrobots/rns-backend-worker:3.3.0
+    container_name: seirios-backend-worker
+    restart: always
+    network_mode: host
+    depends_on:
+      - seirios-mongo
+      - seirios-rabbitmq
+      - seirios-backend
+  seirios-ros2:
+    image: movelrobots/rns-ros2:5.3.15-jazzy
+    container_name: seirios-ros2
+    network_mode: host
+    restart: always
+    environment:
+      DISPLAY: $DISPLAY
+      QT_X11_NO_MITSHM: 1
+      QT_GRAPHICSSYSTEM: native
+      # XDG_RUNTIME_DIR: /tmp/runtime-$(id -u)
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      CYCLONEDDS_URI: |
+        <CycloneDDS xmlns="https://cdds.io/config">
+          <Domain id="any">
+            <Discovery>
+              <ParticipantIndex>auto</ParticipantIndex>
+              <MaxAutoParticipantIndex>200</MaxAutoParticipantIndex>
+            </Discovery>
+          </Domain>
+        </CycloneDDS>
+      MOVEL_MODE: deployment
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/hasplm:/var/hasplm:rw
+      - /etc/hasplm:/etc/hasplm:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /etc/udev:/etc/udev:rw
+      - /home/$USER/catkin_ws/movel_ai/maps:/home/movel/.config/movel/maps:rw
+      - /home/$USER/catkin_ws/movel_ai/paths:/home/movel/.config/movel/paths:rw
+      - /home/$USER/catkin_ws/movel_ai/backup:/home/movel/.config/movel/backup:rw
+      - /home/$USER/catkin_ws/movel_ai/aux_tasks:/home/movel/.config/movel/aux_tasks:rw
+      - /home/$USER/catkin_ws/movel_ai/logs:/home/movel/.config/movel/logs:rw
+      - /home/$USER/catkin_ws/movel_ai/config:/home/movel/.config/movel/config:rw
+      # - /home/$USER/catkin_ws/movel_ai/ros_entrypoint.sh:/ros_entrypoint.sh:rw
+    depends_on:
+      - seirios-redis
+    # entrypoint: bash -c 'source /opt/ros/jazzy/setup.bash && source /home/movel/movel_ws/install/setup.bash --extend && tail -f /dev/null'
+    entrypoint: bash -c 'source /opt/ros/jazzy/setup.bash && source /home/movel/movel_ws/install/setup.bash --extend && ros2 launch movel_bringup movel_bringup.launch.py'
