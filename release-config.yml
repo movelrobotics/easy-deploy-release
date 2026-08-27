@@ -11,7 +11,7 @@
 # <ros>.version: raw version; the bundle id becomes bundle-<version>
 # <ros>.(x86|arm64).*: docker image refs, each MUST include a tag
 
-deploy_for: ros1
+deploy_for: ros2
 author: Movel Robotics
 
 ros1:
