@@ -84,6 +84,7 @@ services:
       ROS_DOMAIN_ID: 0
       RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
       MOVEL_MODE: deployment
+      ZONE_COVERAGE: "false"
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
