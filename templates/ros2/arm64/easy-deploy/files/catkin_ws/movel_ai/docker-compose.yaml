@@ -77,10 +77,15 @@ services:
     network_mode: host
     restart: always
     environment:
+      ROBOT_ID: ${ROBOT_ID:?Set ROBOT_ID in .env, for example robot_001}
+      ROS_SECURITY_ENABLE: "true"
+      ROS_SECURITY_STRATEGY: Enforce
+      ROS_SECURITY_KEYSTORE: /run/ros-security/client
+      ROS_SECURITY_ENCLAVE_OVERRIDE: /${ROBOT_ID}/client_access
       DISPLAY: $DISPLAY
       QT_X11_NO_MITSHM: 1
       QT_GRAPHICSSYSTEM: native
-      # XDG_RUNTIME_DIR: /tmp/runtime-$(id -u)
+      XDG_RUNTIME_DIR: /tmp/runtime-1000
       ROS_DOMAIN_ID: 0
       RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
       MOVEL_MODE: deployment
@@ -91,6 +96,8 @@ services:
       - /etc/hasplm:/etc/hasplm:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /etc/udev:/etc/udev:rw
+      - /var/lib/movel/ros-security/${ROBOT_ID}/client-access-keystore:/run/ros-security/client:ro
+      - /var/lib/movel/ros-security/${ROBOT_ID}/full-access-keystore:/run/ros-security/full:ro
       - /home/$USER/catkin_ws/movel_ai/maps:/home/movel/.config/movel/maps:rw
       - /home/$USER/catkin_ws/movel_ai/paths:/home/movel/.config/movel/paths:rw
       - /home/$USER/catkin_ws/movel_ai/backup:/home/movel/.config/movel/backup:rw
@@ -101,4 +108,4 @@ services:
     depends_on:
       - seirios-redis
     # entrypoint: bash -c 'source /opt/ros/humble/setup.bash && source /home/movel/movel_ws/install/setup.bash --extend && tail -f /dev/null'
-    entrypoint: bash -c 'source /opt/ros/humble/setup.bash && source /home/movel/movel_ws/install/setup.bash --extend && ros2 launch movel_bringup movel_bringup.launch.py'
+    entrypoint: ["/usr/bin/sudo", "-n", "-u", "movel-full-access", "--", "/usr/local/sbin/start-movel-controller"]
