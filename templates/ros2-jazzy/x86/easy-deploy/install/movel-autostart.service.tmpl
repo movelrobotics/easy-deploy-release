@@ -1,0 +1,9 @@
+[Unit]
+Description=Basic one-shot service on machine startup
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/{{ USER }}/catkin_ws/movel_ai/autostart.sh
+
+[Install]
+WantedBy=multi-user.target

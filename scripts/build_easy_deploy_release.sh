@@ -151,10 +151,17 @@ select_latest_path() {
 discover_templates() {
     shopt -s nullglob globstar
 
+    local ros2_template_root="ros2"
+    local ros2_template_label="ROS2"
+    if [[ "${ROS2_VERSION:-}${ROS2_CONFIG_VERSION:-}" == *-jazzy* ]]; then
+        ros2_template_root="ros2-jazzy"
+        ros2_template_label="ROS2 Jazzy"
+    fi
+
     ROS1_X86_TEMPLATE="${ROS1_X86_TEMPLATE:-$(select_latest_path "ROS1 x86" "${ROOT_DIR}"/templates/ros1/x86/easy-deploy "${ROOT_DIR}"/movel-ai-easy-deploy-x86_64-*/**/easy-deploy)}"
     ROS1_ARM64_TEMPLATE="${ROS1_ARM64_TEMPLATE:-$(select_latest_path "ROS1 arm64" "${ROOT_DIR}"/templates/ros1/arm64/easy-deploy "${ROOT_DIR}"/movel-ai-easy-deploy-arm64-*/**/easy-deploy)}"
-    ROS2_X86_TEMPLATE="${ROS2_X86_TEMPLATE:-$(select_latest_path "ROS2 x86" "${ROOT_DIR}"/templates/ros2/x86/easy-deploy "${ROOT_DIR}"/easy-deploy-ros2:*-x86)}"
-    ROS2_ARM64_TEMPLATE="${ROS2_ARM64_TEMPLATE:-$(select_latest_path "ROS2 arm64" "${ROOT_DIR}"/templates/ros2/arm64/easy-deploy "${ROOT_DIR}"/easy-deploy-ros2:*-arm64)}"
+    ROS2_X86_TEMPLATE="${ROS2_X86_TEMPLATE:-$(select_latest_path "${ros2_template_label} x86" "${ROOT_DIR}"/templates/${ros2_template_root}/x86/easy-deploy)}"
+    ROS2_ARM64_TEMPLATE="${ROS2_ARM64_TEMPLATE:-$(select_latest_path "${ros2_template_label} arm64" "${ROOT_DIR}"/templates/${ros2_template_root}/arm64/easy-deploy)}"
 
     shopt -u nullglob globstar
 }
