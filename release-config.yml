@@ -23,12 +23,12 @@
 #              Slugs rns-ros-humble and rns-ros match the entries already
 #              seeded on the website so the pipeline updates them in place.
 
-deploy_for: ros2_jazzy
+deploy_for: ros1
 author: Movel Robotics
 
 ros1:
-  config: master
-  version: 1.1.0
+  config: release/2.74.0
+  version: 2.74.19
   download:
     slug: rns-ros-easy-deploy
     name: RNS ROS Easy Deploy
@@ -40,15 +40,15 @@ ros1:
       - Ready for repo release wiring
       - Single-click mirror download
   x86:
-    rns: movelrobots/rns-ros:2.73.6
-    backend: movelrobots/rns-backend:4.41.0-alpha
-    frontend: movelrobots/rns-frontend:4.41.0-alpha
+    rns: movelrobots/rns-ros:2.74.19
+    backend: movelrobots/rns-backend:4.45.1-alpha
+    frontend: movelrobots/rns-frontend:4.45.1-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
     redis: library/redis:6.2.0
     rabbitmq: library/rabbitmq:3.8.12-management
     mongo: library/mongo:4.4.4
   arm64:
-    rns: movelrobots/rns-ros:2.73.6
+    rns: movelrobots/rns-ros:2.73.18
     backend: movelrobots/rns-backend:arm64-4.41.0-alpha
     frontend: movelrobots/rns-frontend:arm64-4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
@@ -57,8 +57,8 @@ ros1:
     mongo: library/mongo:4.4.4
 
 ros2:
-  config: master
-  version: 1.1.0
+  config: release/5.3.0
+  version: 5.3.39
   download:
     slug: rns-ros-humble
     name: RNS ROS Humble
@@ -68,7 +68,7 @@ ros2:
     highlights:
       - RNS ROS Humble
   x86:
-    rns: movelrobots/rns-ros2:5.3.15
+    rns: movelrobots/rns-ros2:5.3.39
     backend: movelrobots/rns-backend:4.41.0-alpha
     frontend: movelrobots/rns-frontend:4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
@@ -76,7 +76,7 @@ ros2:
     rabbitmq: library/rabbitmq:3.8.12-management
     mongo: library/mongo:4.4.4
   arm64:
-    rns: movelrobots/rns-ros2:5.3.15
+    rns: movelrobots/rns-ros2:5.3.39
     backend: movelrobots/rns-backend:arm64-4.41.0-alpha
     frontend: movelrobots/rns-frontend:arm64-4.41.0-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
