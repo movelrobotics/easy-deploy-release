@@ -48,9 +48,9 @@ ros1:
     rabbitmq: library/rabbitmq:3.8.12-management
     mongo: library/mongo:4.4.4
   arm64:
-    rns: movelrobots/rns-ros:2.73.18
-    backend: movelrobots/rns-backend:arm64-4.41.0-alpha
-    frontend: movelrobots/rns-frontend:arm64-4.41.0-alpha
+    rns: movelrobots/rns-ros:2.74.19
+    backend: movelrobots/rns-backend:arm64-4.45.1-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.45.1-alpha
     backend_worker: movelrobots/rns-backend-worker:3.3.0
     redis: library/redis:6.2.0
     rabbitmq: library/rabbitmq:3.8.12-management
