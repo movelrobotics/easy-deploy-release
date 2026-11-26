@@ -427,9 +427,12 @@ fi
 
 # Print a summary with direct URLs to every published release so there is no
 # ambiguity about what landed on GitHub (the sidebar only shows "Latest").
+# Best-effort only: by this point the uploads are already verified, so a
+# transient gh failure here must not fail the job (set -e + pipefail would
+# otherwise propagate it).
 log "Published releases:"
 for tag in ${UPLOADED_TAGS[@]+"${UPLOADED_TAGS[@]}"}; do
-    gh release view "${tag}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null
+    gh release view "${tag}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null || true
 done | sed 's#^#  - #'
 
 log "Done. Release(s) published to ${RELEASE_REPO}."
