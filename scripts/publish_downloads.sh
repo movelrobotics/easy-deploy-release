@@ -3,19 +3,26 @@
 # publish_downloads.sh — publish/update Easy Deploy download entries on the
 # Movél website via the internal downloads API, driven by release-config.yml.
 #
-# For each ros line in scope (deploy_for: ros1 | ros2 | both), this reads the
-# <ros>.download block and <ros>.version, derives `repo` and `releasePath`, and
-# POSTs the payload to ${MOVEL_API_BASE_URL}/api/internal/downloads.
+# For each release line in scope (deploy_for), this reads the <section>.download
+# block and <section>.version, derives `repo` and `releasePath` from the release
+# tag, and creates or updates the entry keyed by `slug`.
 #
-# NOTE: this assumes the downloads API treats a POST as an upsert keyed by
-# `slug` (create-or-update in place). If the API is create-only, switch this to
-# a GET-then-PUT/PATCH flow once the contract is confirmed by the API team.
+# API contract (verified against the deployed API):
+#   - Auth is a dedicated API key sent as the `x-api-key` header, scoped to
+#     /api/internal/downloads only. Bearer auth is NOT accepted.
+#   - GET    /api/internal/downloads        -> list ({"packages":[...]})
+#   - POST   /api/internal/downloads        -> create; re-POSTing an existing
+#                                             slug fails with HTTP 500, so
+#                                             POST is create-only.
+#   - PUT    /api/internal/downloads/<slug> -> update; unknown slug is 404.
+#   - DELETE requires an SSO session (not available to this key).
+# Because POST is not an upsert, idempotency is implemented here: fetch the
+# list once, then PUT when the slug already exists and POST when it does not.
 #
 # Env:
 #   MOVEL_API_BASE_URL  API base, e.g. https://api.movelrobotics.com
-#   MOVEL_API_TOKEN     bearer token (REQUIRED). Use a long-lived service token;
-#                       the personal JWT in the docs expires in ~24h and is not
-#                       suitable for unattended CI.
+#   MOVEL_API_TOKEN     downloads API key (REQUIRED). Long-lived key deployed
+#                       on the server; do NOT commit it anywhere.
 
 set -Eeuo pipefail
 
@@ -88,40 +95,95 @@ yq_read() {
     "${YQ}" eval "${1} // \"\"" "${CONFIG_FILE}"
 }
 
-publish_ros() {
-    # publish_ros <ros>
-    local ros=$1 version tag payload http_code
-    version=$(yq_read ".${ros}.version")
-    [[ -n "${version}" ]] || die "release-config.yml is missing '${ros}.version'"
+# Expand deploy_for into the ordered list of release-line sections in scope.
+# Sections: ros1, ros2 (default ROS2 = Humble), ros2_jazzy.
+sections_for() {
+    # sections_for <deploy_for>
+    local deploy_for=$1
+    case "${deploy_for}" in
+        ros1)          echo "ros1" ;;
+        ros2)          echo "ros2" ;;
+        ros2_jazzy)    echo "ros2_jazzy" ;;
+        both)          echo "ros1 ros2" ;;
+        all)           echo "ros1 ros2 ros2_jazzy" ;;
+        "")            die "release-config.yml is missing 'deploy_for'" ;;
+        *)
+            # Comma-separated list, e.g. "ros1,ros2_jazzy".
+            local parts=(${deploy_for//,/ }) part
+            [[ ${#parts[@]} -gt 0 ]] || die "Invalid deploy_for: '${deploy_for}'"
+            for part in "${parts[@]}"; do
+                case "${part}" in
+                    ros1|ros2|ros2_jazzy) ;;
+                    *) die "deploy_for lines must be ros1, ros2, or ros2_jazzy (got '${part}')" ;;
+                esac
+            done
+            echo "${parts[*]}"
+            ;;
+    esac
+}
 
-    # tag mirrors scripts/release.sh: ${ros}-${bundle_id}, bundle_id=bundle-<version>
-    tag="${ros}-bundle-${version}"
+publish_section() {
+    # publish_section <section> <existing_slugs>
+    local section=$1
+    local existing_slugs=$2
+    local version build tag slug payload http_code body
+
+    version=$(yq_read ".${section}.version")
+    [[ -n "${version}" ]] || die "release-config.yml is missing '${section}.version'"
+
+    # Build line defaults to the section name; ros2_jazzy overrides to ros2 so
+    # the GitHub tag keeps the historical ros2-bundle-* prefix.
+    build=$(yq_read ".${section}.build")
+    [[ -n "${build}" ]] || build="${section}"
+    case "${build}" in
+        ros1|ros2) ;;
+        *) die "${section}.build must be ros1 or ros2 (got '${build}')" ;;
+    esac
+
+    # Tag mirrors scripts/release.sh: ${build}-${bundle_id}, bundle_id=bundle-<version>
+    tag="${build}-bundle-${version}"
 
     # Emit the configured download block as JSON, then inject derived fields.
     # Keys mirror the API contract so no mapping layer is needed.
-    if ! payload=$("${YQ}" eval -o=json ".${ros}.download" "${CONFIG_FILE}" 2>/dev/null) \
+    if ! payload=$("${YQ}" eval -o=json ".${section}.download" "${CONFIG_FILE}" 2>/dev/null) \
         || [[ -z "${payload}" || "${payload}" == "null" ]]; then
-        die "release-config.yml is missing '${ros}.download' (slug/name/etc) for ${ros}"
+        die "release-config.yml is missing '${section}.download' (slug/name/etc) for ${section}"
+    fi
+    slug=$(printf '%s' "${payload}" | jq -r '.slug // empty')
+    [[ -n "${slug}" ]] || die "${section}.download.slug is empty"
+
+    payload=$(printf '%s' "${payload}" \
+        | jq --arg repo "${RELEASE_REPO_URL}" \
+             --arg releasePath "/releases/tag/${tag}" \
+             '. + {repo:$repo, releasePath:$releasePath, dependenciesVersion:(.dependenciesVersion // {})}')
+
+    local method url
+    if grep -qx "${slug}" <<<"${existing_slugs}"; then
+        method="PUT"
+        url="${API_ENDPOINT}/${slug}"
+    else
+        method="POST"
+        url="${API_ENDPOINT}"
     fi
 
-    log "Publishing ${ros} -> ${API_ENDPOINT}"
+    log "Publishing ${section} -> ${method} ${slug}"
     log "  repo=${RELEASE_REPO_URL}"
     log "  releasePath=/releases/tag/${tag}"
 
     http_code=$(printf '%s' "${payload}" \
-        | jq --arg repo "${RELEASE_REPO_URL}" \
-             --arg releasePath "/releases/tag/${tag}" \
-             '. + {repo:$repo, releasePath:$releasePath, dependenciesVersion:(.dependenciesVersion // {})}' \
-        | curl -sS -o /dev/null -w '%{http_code}' \
-            -X POST "${API_ENDPOINT}" \
+        | curl -sS -o /tmp/publish_downloads_resp.$$ -w '%{http_code}' \
+            -X "${method}" "${url}" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${API_TOKEN}" \
-            --data @-) || die "curl request to ${API_ENDPOINT} failed for ${ros}"
+            -H "x-api-key: ${API_TOKEN}" \
+            --data @-) || die "curl request to ${url} failed for ${section}"
+    body=$(cat /tmp/publish_downloads_resp.$$ 2>/dev/null || true)
+    rm -f /tmp/publish_downloads_resp.$$
 
     if [[ "${http_code}" =~ ^2 ]]; then
-        log "  ${ros}: HTTP ${http_code} OK"
+        log "  ${section}/${slug}: ${method} HTTP ${http_code} OK"
     else
-        die "${ros}: downloads API returned HTTP ${http_code} for ${API_ENDPOINT}"
+        log "  response: ${body}"
+        die "${section}: downloads API returned HTTP ${http_code} for ${method} ${url}"
     fi
 }
 
@@ -131,21 +193,21 @@ require_command curl
 ensure_yq
 
 DEPLOY_FOR=$(yq_read '.deploy_for')
-case "${DEPLOY_FOR}" in
-    ros1|ros2|both) ;;
-    "") die "release-config.yml is missing 'deploy_for'" ;;
-    *) die "release-config.yml deploy_for must be ros1, ros2, or both (got '${DEPLOY_FOR}')" ;;
-esac
+SECTIONS=$(sections_for "${DEPLOY_FOR}")
 
 log "Base URL: ${BASE_URL}"
-log "Deploy target: ${DEPLOY_FOR}"
+log "Deploy target: ${DEPLOY_FOR} (${SECTIONS// /, })"
 
-# Two separate cases so `both` publishes ros1 then ros2.
-case "${DEPLOY_FOR}" in
-    ros1|both) publish_ros ros1 ;;
-esac
-case "${DEPLOY_FOR}" in
-    ros2|both) publish_ros ros2 ;;
-esac
+# One GET up front: the slug list decides PUT (update) vs POST (create) per line.
+log "Fetching current download entries..."
+EXISTING_SLUGS=$(curl -sS -f -m 30 \
+    -H "x-api-key: ${API_TOKEN}" \
+    "${API_ENDPOINT}" \
+    | jq -r '.packages[].slug') \
+    || die "Failed to list existing download entries from ${API_ENDPOINT}"
+
+for section in ${SECTIONS}; do
+    publish_section "${section}" "${EXISTING_SLUGS}"
+done
 
 log "Done. Download entries published to ${API_ENDPOINT}"

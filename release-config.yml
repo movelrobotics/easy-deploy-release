@@ -5,17 +5,25 @@
 # file is absent, the legacy path is used: manifests/*.yaml + a pre-existing
 # config directory, exactly as build_easy_deploy_release.sh works today.
 #
-# deploy_for:  ros1 | ros2 | both     which ros line(s) to build + publish
+# deploy_for:  ros1 | ros2 | ros2_jazzy | both | all   (or a comma list)
+#              ros2 is the default ROS2 line (Humble); ros2_jazzy is the
+#              parallel Jazzy line. both = ros1+ros2, all = all three.
 # author:                          release author (also written to release_info.json)
-# <ros>.config: branch or tag in the matching config repo
-# <ros>.version: raw version; the bundle id becomes bundle-<version>
-# <ros>.(x86|arm64).*: docker image refs, each MUST include a tag
-# <ros>.download.*: metadata published to the downloads API by
-#                    scripts/publish_downloads.sh (slug/name/category/latestVersion/
-#                    description/highlights). repo and releasePath are derived:
-#                    repo = easy-deploy-release, releasePath = /releases/tag/<ros>-bundle-<version>.
+# <section>.config: branch or tag in the matching config repo
+# <section>.version: raw version; the bundle id becomes bundle-<version>
+# <section>.build: builder line + tag prefix (ros1 | ros2). Defaults to the
+#              section name. ros2_jazzy sets build: ros2 so its GitHub tag and
+#              bundle zips keep the historical ros2-bundle-* naming.
+# <section>.(x86|arm64).*: docker image refs, each MUST include a tag
+# <section>.download.*: metadata published to the downloads API by
+#              scripts/publish_downloads.sh (slug/name/category/latestVersion/
+#              description/highlights). repo and releasePath are derived:
+#              repo = easy-deploy-release,
+#              releasePath = /releases/tag/<build>-bundle-<version>.
+#              Slugs rns-ros-humble and rns-ros match the entries already
+#              seeded on the website so the pipeline updates them in place.
 
-deploy_for: ros2
+deploy_for: ros2_jazzy
 author: Movel Robotics
 
 ros1:
@@ -25,9 +33,12 @@ ros1:
     slug: rns-ros-easy-deploy
     name: RNS ROS Easy Deploy
     category: RNS
-    latestVersion: "1.1.0"
-    description: RNS ROS Easy Deploy for ROS1
-    highlights: []
+    latestVersion: "Noetic"
+    description: Core Seirios RNS ROS1 (Noetic) integration package. Designed to be deployed directly onto individual robots in your fleet.
+    highlights:
+      - Robot-side deployment
+      - Ready for repo release wiring
+      - Single-click mirror download
   x86:
     rns: movelrobots/rns-ros:2.73.6
     backend: movelrobots/rns-backend:4.41.0-alpha
@@ -46,16 +57,47 @@ ros1:
     mongo: library/mongo:4.4.4
 
 ros2:
+  config: master
+  version: 1.1.0
+  download:
+    slug: rns-ros-humble
+    name: RNS ROS Humble
+    category: RNS
+    latestVersion: "Humble"
+    description: RNS ROS Humble
+    highlights:
+      - RNS ROS Humble
+  x86:
+    rns: movelrobots/rns-ros2:5.3.15
+    backend: movelrobots/rns-backend:4.41.0-alpha
+    frontend: movelrobots/rns-frontend:4.41.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
+  arm64:
+    rns: movelrobots/rns-ros2:5.3.15
+    backend: movelrobots/rns-backend:arm64-4.41.0-alpha
+    frontend: movelrobots/rns-frontend:arm64-4.41.0-alpha
+    backend_worker: movelrobots/rns-backend-worker:3.3.0
+    redis: library/redis:6.2.0
+    rabbitmq: library/rabbitmq:3.8.12-management
+    mongo: library/mongo:4.4.4
+
+ros2_jazzy:
+  build: ros2
   config: feat/new_release_jazzy_5.3.0
   version: 5.3.15-jazzy
   download:
-    slug: rns-easy-deploy-jazzy
-    name: RNS Easy Deploy Jazzy
+    slug: rns-ros
+    name: RNS ROS2 Jazzy
     category: RNS
-    latestVersion: "ROS2 Jazzy"
-    description: RNS Easy Deploy for ROS2 Jazzy
+    latestVersion: "Jazzy"
+    description: Core Seirios RNS ROS integration package. Designed to be deployed directly onto individual robots in your fleet.
     highlights:
-      - ROS2 Jazzy support
+      - Robot-side deployment
+      - Ready for repo release wiring
+      - Single-click mirror download
   x86:
     rns: movelrobots/rns-ros2:5.3.15-jazzy
     backend: movelrobots/rns-backend:4.41.0-alpha

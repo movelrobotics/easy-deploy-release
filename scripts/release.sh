@@ -43,7 +43,11 @@ Usage:
 Drives an Easy Deploy release from release-config.yml.
 
 Options:
-  --deploy-for TARGET   ros1 | ros2 | both. Overrides release-config.yml.
+  --deploy-for TARGET   ros1 | ros2 | ros2_jazzy | both | all (or a comma
+                        list such as ros1,ros2_jazzy). Overrides
+                        release-config.yml. ros2 is the default ROS2 line
+                        (Humble); ros2_jazzy is the parallel Jazzy line.
+                        both = ros1+ros2, all = all three.
   --dist-dir DIR        Output directory. Default: ./dist
   --no-upload           Build zips only; do not push to GitHub Releases.
   --keep-config         Reuse an existing cloned config dir (skip re-clone).
@@ -156,23 +160,26 @@ clone_config() {
 }
 
 render_manifest() {
-    # render_manifest <ros> <bundle_id> <author> <out_file>
+    # render_manifest <section> <build> <bundle_id> <author> <out_file>
+    # Images come from the config section; the stamped ros line is the build
+    # name so the builder validation and bundle naming keep seeing ros1/ros2.
     # Emits a manifest without config.path so the builder honors --ros-config-dir.
-    local ros=$1
-    local bundle_id=$2
-    local author=$3
-    local out_file=$4
+    local section=$1
+    local build=$2
+    local bundle_id=$3
+    local author=$4
+    local out_file=$5
 
     {
         printf 'bundle:\n'
         printf '  id: %s\n' "${bundle_id}"
-        printf '  ros: %s\n' "${ros}"
+        printf '  ros: %s\n' "${build}"
         printf '  author: %s\n' "${author}"
         printf 'images:\n'
         printf '  x86:\n'
-        "${YQ}" eval ".${ros}.x86" "${CONFIG_FILE}" | sed 's/^/    /'
+        "${YQ}" eval ".${section}.x86" "${CONFIG_FILE}" | sed 's/^/    /'
         printf '  arm64:\n'
-        "${YQ}" eval ".${ros}.arm64" "${CONFIG_FILE}" | sed 's/^/    /'
+        "${YQ}" eval ".${section}.arm64" "${CONFIG_FILE}" | sed 's/^/    /'
     } > "${out_file}"
 }
 
@@ -187,14 +194,14 @@ read_config_version() {
 }
 
 format_images() {
-    # format_images <ros> -> markdown list of x86 and arm64 images from release-config.yml
-    local ros=$1
+    # format_images <section> -> markdown list of x86 and arm64 images from release-config.yml
+    local section=$1
     local arch key val
     local img_keys=(rns backend frontend backend_worker redis rabbitmq mongo)
     for arch in x86 arm64; do
         printf '**Images (%s):**\n' "${arch}"
         for key in "${img_keys[@]}"; do
-            val=$(yq_read ".${ros}.${arch}.${key}")
+            val=$(yq_read ".${section}.${arch}.${key}")
             printf -- '- %s: `%s`\n' "${key}" "${val}"
         done
         printf '\n'
@@ -202,14 +209,18 @@ format_images() {
 }
 
 upload_release() {
-    # upload_release <ros> <bundle_id> <config_ref> <config_version>
-    local ros=$1
-    local bundle_id=$2
-    local config_ref=$3
-    local config_version=$4
-    local tag="${ros}-${bundle_id}"
-    local zip_x86="${DIST_DIR}/easy-deploy-${ros}-${bundle_id}-x86.zip"
-    local zip_arm64="${DIST_DIR}/easy-deploy-${ros}-${bundle_id}-arm64.zip"
+    # upload_release <section> <build> <bundle_id> <config_ref> <config_version>
+    # The GitHub tag and zip names use the build line (ros1/ros2) so flavors
+    # sharing a builder line keep the historical naming, e.g. both ros2 flavors
+    # publish as ros2-bundle-<version>.
+    local section=$1
+    local build=$2
+    local bundle_id=$3
+    local config_ref=$4
+    local config_version=$5
+    local tag="${build}-${bundle_id}"
+    local zip_x86="${DIST_DIR}/easy-deploy-${build}-${bundle_id}-x86.zip"
+    local zip_arm64="${DIST_DIR}/easy-deploy-${build}-${bundle_id}-arm64.zip"
 
     [[ -f "${zip_x86}" ]] || die "Missing expected asset: ${zip_x86}"
     [[ -f "${zip_arm64}" ]] || die "Missing expected asset: ${zip_arm64}"
@@ -217,7 +228,7 @@ upload_release() {
     require_command gh
     export GH_TOKEN="${GITHUB_TOKEN:?GITHUB_TOKEN is required for upload}"
 
-    local title="Easy Deploy ${ros} ${bundle_id}"
+    local title="Easy Deploy ${build} ${bundle_id}"
     local generated_at
     generated_at="$(date -Iseconds)"
     # Multi-line release notes: includes version, config ref/version, the full
@@ -225,11 +236,12 @@ upload_release() {
     # release is self-describing).
     local notes
     notes="$(printf '%s\n' \
-        "**${ros}** Easy Deploy bundle **${bundle_id}**" \
+        "**${build}** Easy Deploy bundle **${bundle_id}** (${section})" \
         "" \
         "| Field | Value |" \
         "| --- | --- |" \
-        "| ROS line | ${ros} |" \
+        "| Release line | ${section} |" \
+        "| ROS line | ${build} |" \
         "| Bundle version | ${bundle_id} |" \
         "| Config repo ref | ${config_ref} |" \
         "| Config version | ${config_version} |" \
@@ -237,7 +249,7 @@ upload_release() {
         "| Generated | ${generated_at} |")"
     notes="${notes}
 
-$(format_images "${ros}")
+$(format_images "${section}")
 
 **Assets:**
 - \`${zip_x86##*/}\`
@@ -320,75 +332,84 @@ ensure_yq
 mkdir -p "${CONFIGS_DIR}" "${RENDER_DIR}" "${DIST_DIR}"
 
 DEPLOY_FOR="${DEPLOY_FOR_OVERRIDE:-$(yq_read '.deploy_for')}"
+# Expand deploy_for into the ordered list of release-line sections in scope:
+# ros1, ros2 (default ROS2 = Humble), ros2_jazzy. Mirrors publish_downloads.sh.
 case "${DEPLOY_FOR}" in
-    ros1|ros2|both) ;;
-    "") die "release-config.yml is missing 'deploy_for'" ;;
-    *) die "release-config.yml deploy_for must be ros1, ros2, or both (got '${DEPLOY_FOR}')" ;;
+    ros1)       SECTIONS="ros1" ;;
+    ros2)       SECTIONS="ros2" ;;
+    ros2_jazzy) SECTIONS="ros2_jazzy" ;;
+    both)       SECTIONS="ros1 ros2" ;;
+    all)        SECTIONS="ros1 ros2 ros2_jazzy" ;;
+    "")         die "release-config.yml is missing 'deploy_for'" ;;
+    *)
+        SECTIONS=""
+        for part in ${DEPLOY_FOR//,/ }; do
+            case "${part}" in
+                ros1|ros2|ros2_jazzy) SECTIONS="${SECTIONS}${SECTIONS:+ }${part}" ;;
+                *) die "deploy_for lines must be ros1, ros2, or ros2_jazzy (got '${part}')" ;;
+            esac
+        done
+        [[ -n "${SECTIONS}" ]] || die "Invalid deploy_for: '${DEPLOY_FOR}'"
+        ;;
 esac
-
-BUILD_ROS1=0
-BUILD_ROS2=0
-[[ "${DEPLOY_FOR}" == "ros1" || "${DEPLOY_FOR}" == "both" ]] && BUILD_ROS1=1
-[[ "${DEPLOY_FOR}" == "ros2" || "${DEPLOY_FOR}" == "both" ]] && BUILD_ROS2=1
 
 AUTHOR=$(yq_read '.author')
 [[ -n "${AUTHOR}" ]] || AUTHOR="Movel AI"
 
-log "Deploy target: ${DEPLOY_FOR}"
+log "Deploy target: ${DEPLOY_FOR} ($(echo ${SECTIONS} | tr ' ' ','))"
 log "Author: ${AUTHOR}"
 
-BUILDER_ARGS=(--deploy-for "${DEPLOY_FOR}" --dist-dir "${DIST_DIR}" --author "${AUTHOR}")
+# Per-section state kept for the upload phase.
+declare -a UP_SECTION=() UP_BUILD=() UP_BUNDLE=() UP_REF=() UP_CFGVER=()
 
-if [[ ${BUILD_ROS1} -eq 1 ]]; then
-    ROS1_VERSION=$(yq_read '.ros1.version')
-    [[ -n "${ROS1_VERSION}" ]] || die "release-config.yml is missing 'ros1.version'"
-    ROS1_CONFIG_REF=$(yq_read '.ros1.config')
-    [[ -n "${ROS1_CONFIG_REF}" ]] || die "release-config.yml is missing 'ros1.config'"
-    ROS1_BUNDLE="bundle-${ROS1_VERSION}"
-    ROS1_CONFIG_DIR="${CONFIGS_DIR}/rns-config"
+for section in ${SECTIONS}; do
+    VERSION=$(yq_read ".${section}.version")
+    [[ -n "${VERSION}" ]] || die "release-config.yml is missing '${section}.version'"
+    CONFIG_REF=$(yq_read ".${section}.config")
+    [[ -n "${CONFIG_REF}" ]] || die "release-config.yml is missing '${section}.config'"
 
-    log "ROS1 bundle id: ${ROS1_BUNDLE}"
-    log "ROS1 config ref: ${ROS1_CONFIG_REF}"
-    clone_config "ros1" "${CONFIG_REPO_ROS1}" "${ROS1_CONFIG_REF}" "${ROS1_CONFIG_DIR}"
-    [[ -f "${ROS1_CONFIG_DIR}/seirios_config_release.yml" ]] \
-        || die "Cloned ros1 config has no seirios_config_release.yml (wrong ref?)"
+    # Build line defaults to the section name; ros2_jazzy overrides to ros2 so
+    # tags and zips keep the historical ros2-bundle-* naming.
+    BUILD=$(yq_read ".${section}.build")
+    [[ -n "${BUILD}" ]] || BUILD="${section}"
+    case "${BUILD}" in
+        ros1|ros2) ;;
+        *) die "${section}.build must be ros1 or ros2 (got '${BUILD}')" ;;
+    esac
 
-    ROS1_MANIFEST="${RENDER_DIR}/ros1-release.yaml"
-    render_manifest "ros1" "${ROS1_BUNDLE}" "${AUTHOR}" "${ROS1_MANIFEST}"
-    ROS1_CONFIG_VERSION=$(read_config_version "${ROS1_CONFIG_DIR}")
-    log "ROS1 config version: ${ROS1_CONFIG_VERSION}"
-    BUILDER_ARGS+=(
-        --ros1-manifest "${ROS1_MANIFEST}"
-        --ros1-config-dir "${ROS1_CONFIG_DIR}"
-    )
-fi
+    BUNDLE_ID="bundle-${VERSION}"
+    case "${BUILD}" in
+        ros1) CONFIG_REPO="${CONFIG_REPO_ROS1}" ;;
+        ros2) CONFIG_REPO="${CONFIG_REPO_ROS2}" ;;
+    esac
+    CONFIG_DIR="${CONFIGS_DIR}/${section}"
 
-if [[ ${BUILD_ROS2} -eq 1 ]]; then
-    ROS2_VERSION=$(yq_read '.ros2.version')
-    [[ -n "${ROS2_VERSION}" ]] || die "release-config.yml is missing 'ros2.version'"
-    ROS2_CONFIG_REF=$(yq_read '.ros2.config')
-    [[ -n "${ROS2_CONFIG_REF}" ]] || die "release-config.yml is missing 'ros2.config'"
-    ROS2_BUNDLE="bundle-${ROS2_VERSION}"
-    ROS2_CONFIG_DIR="${CONFIGS_DIR}/rns-config2"
+    log "[${section}] bundle id: ${BUNDLE_ID} (build line: ${BUILD})"
+    log "[${section}] config ref: ${CONFIG_REF}"
+    clone_config "${section}" "${CONFIG_REPO}" "${CONFIG_REF}" "${CONFIG_DIR}"
+    [[ -f "${CONFIG_DIR}/seirios_config_release.yml" ]] \
+        || die "Cloned ${section} config has no seirios_config_release.yml (wrong ref?)"
 
-    log "ROS2 bundle id: ${ROS2_BUNDLE}"
-    log "ROS2 config ref: ${ROS2_CONFIG_REF}"
-    clone_config "ros2" "${CONFIG_REPO_ROS2}" "${ROS2_CONFIG_REF}" "${ROS2_CONFIG_DIR}"
-    [[ -f "${ROS2_CONFIG_DIR}/seirios_config_release.yml" ]] \
-        || die "Cloned ros2 config has no seirios_config_release.yml (wrong ref?)"
+    MANIFEST="${RENDER_DIR}/${section}-release.yaml"
+    render_manifest "${section}" "${BUILD}" "${BUNDLE_ID}" "${AUTHOR}" "${MANIFEST}"
+    CONFIG_VERSION=$(read_config_version "${CONFIG_DIR}")
+    log "[${section}] config version: ${CONFIG_VERSION}"
 
-    ROS2_MANIFEST="${RENDER_DIR}/ros2-release.yaml"
-    render_manifest "ros2" "${ROS2_BUNDLE}" "${AUTHOR}" "${ROS2_MANIFEST}"
-    ROS2_CONFIG_VERSION=$(read_config_version "${ROS2_CONFIG_DIR}")
-    log "ROS2 config version: ${ROS2_CONFIG_VERSION}"
-    BUILDER_ARGS+=(
-        --ros2-manifest "${ROS2_MANIFEST}"
-        --ros2-config-dir "${ROS2_CONFIG_DIR}"
-    )
-fi
+    # One builder invocation per section: two sections can share a builder
+    # line (ros2 and ros2_jazzy both build as ros2) and must not be merged
+    # into a single --deploy-for run.
+    log "Running builder for ${section}: ${BUILDER##*/} --deploy-for ${BUILD}"
+    "${BUILDER}" --deploy-for "${BUILD}" --dist-dir "${DIST_DIR}" --author "${AUTHOR}" \
+        "--${BUILD}-manifest" "${MANIFEST}" \
+        "--${BUILD}-config-dir" "${CONFIG_DIR}" \
+        ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}
 
-log "Running builder: ${BUILDER##*/} ${BUILDER_ARGS[*]}"
-"${BUILDER}" "${BUILDER_ARGS[@]}" "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
+    UP_SECTION+=("${section}")
+    UP_BUILD+=("${BUILD}")
+    UP_BUNDLE+=("${BUNDLE_ID}")
+    UP_REF+=("${CONFIG_REF}")
+    UP_CFGVER+=("${CONFIG_VERSION}")
+done
 
 if [[ ${NO_UPLOAD} -eq 1 ]]; then
     log "--no-upload set; skipping GitHub Releases upload"
@@ -396,19 +417,19 @@ if [[ ${NO_UPLOAD} -eq 1 ]]; then
     exit 0
 fi
 
-if [[ ${BUILD_ROS1} -eq 1 ]]; then
-    upload_release "ros1" "${ROS1_BUNDLE}" "${ROS1_CONFIG_REF}" "${ROS1_CONFIG_VERSION}"
-fi
-if [[ ${BUILD_ROS2} -eq 1 ]]; then
-    upload_release "ros2" "${ROS2_BUNDLE}" "${ROS2_CONFIG_REF}" "${ROS2_CONFIG_VERSION}"
+declare -a UPLOADED_TAGS=()
+if [[ ${#UP_SECTION[@]} -gt 0 ]]; then
+    for i in "${!UP_SECTION[@]}"; do
+        upload_release "${UP_SECTION[$i]}" "${UP_BUILD[$i]}" "${UP_BUNDLE[$i]}" "${UP_REF[$i]}" "${UP_CFGVER[$i]}"
+        UPLOADED_TAGS+=("${UP_BUILD[$i]}-${UP_BUNDLE[$i]}")
+    done
 fi
 
 # Print a summary with direct URLs to every published release so there is no
 # ambiguity about what landed on GitHub (the sidebar only shows "Latest").
 log "Published releases:"
-{
-    [[ ${BUILD_ROS1} -eq 1 ]] && gh release view "ros1-${ROS1_BUNDLE}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null
-    [[ ${BUILD_ROS2} -eq 1 ]] && gh release view "ros2-${ROS2_BUNDLE}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null
-} | sed 's#^#  - #'
+for tag in ${UPLOADED_TAGS[@]+"${UPLOADED_TAGS[@]}"}; do
+    gh release view "${tag}" --repo "${RELEASE_REPO}" --json url --jq '.url' 2>/dev/null
+done | sed 's#^#  - #'
 
 log "Done. Release(s) published to ${RELEASE_REPO}."
